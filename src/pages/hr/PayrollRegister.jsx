@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { format } from 'date-fns'
-import { Plus, ChevronDown } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useLocalData } from '../../hooks/useLocalData'
-import { dbSelect } from '../../lib/supabase'
+import { useEmployees } from '../../hooks/useEmployees'
 import { Select, Input, NumberInput } from '../../components/ui/FormField'
 import { StatusBadge, Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { PAYMENT_METHODS, PAYROLL_STATUSES } from '../../data/constants'
-import { EMPLOYEES } from '../../data/employees'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const currentYear = new Date().getFullYear()
@@ -33,19 +32,12 @@ function calcPayroll(f) {
 
 export default function PayrollRegister() {
   const { rows: payroll, upsert } = useLocalData('payroll')
-  const [employees, setEmployees] = useState([])
+  const { salaried: activeEmps, empName } = useEmployees()
   const [filterMonth, setFilterMonth] = useState(currentMonth)
   const [filterYear, setFilterYear] = useState(String(currentYear))
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('mm_employees') || '[]')
-    setEmployees(stored.length ? stored : EMPLOYEES)
-  }, [])
-
-  const activeEmps = employees.filter(e => e.status !== 'Outsourced' && e.monthlyRate > 0)
   const filtered = payroll.filter(r => r.month === filterMonth && r.year === filterYear)
 
   const totals = filtered.reduce((acc, r) => {
@@ -79,7 +71,6 @@ export default function PayrollRegister() {
     setModal(false)
   }
 
-  const empName = id => employees.find(e => e.id === id)?.name || id
   const statusColor = { Paid: 'green', Unpaid: 'red', Partial: 'amber' }
 
   return (

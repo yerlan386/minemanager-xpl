@@ -98,10 +98,36 @@ export default function GoldRoom() {
   }
 
   async function handleSubmit() {
-    // Validate witnesses for cleanup
-    if (tab === 'cleanup' && (!form.witness_1 || !form.witness_2)) {
-      alert('Both witnesses are required for sluice clean-up records.')
-      return
+    // Full mandatory field validation per tab
+    if (tab === 'cleanup') {
+      if (!form.sluice_cleaned_by || !form.witness_1 || !form.witness_2 || !form.concentrate_weight_kg || !form.date) {
+        alert('All fields are mandatory. Please fill in every field.')
+        return
+      }
+      if (form.witness_1 === form.witness_2) {
+        alert('Witness 1 and Witness 2 must be different people.')
+        return
+      }
+      if (form.sluice_cleaned_by === form.witness_1 || form.sluice_cleaned_by === form.witness_2) {
+        alert('The person who cleaned the sluice cannot also be a witness.')
+        return
+      }
+    }
+    if (tab === 'pour') {
+      if (!form.date || !form.gross_weight_g || !form.fine_gold_estimate_g || !form.pour_date || !form.supervisor_present || !form.witness_present) {
+        alert('All fields are mandatory for a Pour Record.')
+        return
+      }
+      if (form.supervisor_present === form.witness_present) {
+        alert('Supervisor and Witness must be different people.')
+        return
+      }
+    }
+    if (tab === 'custody') {
+      if (!form.date || !form.transfer_type || !form.weight_g || !form.recipient_name || !form.receipt_reference || !form.handed_over_by || !form.received_by) {
+        alert('All fields are mandatory for Chain of Custody.')
+        return
+      }
     }
     setSaving(true)
     const record = {

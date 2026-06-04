@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { Plus } from 'lucide-react'
 import { useLocalData } from '../../hooks/useLocalData'
+import { useEmployees } from '../../hooks/useEmployees'
 import { Select, Input, NumberInput } from '../../components/ui/FormField'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
-import { EMPLOYEES } from '../../data/employees'
 import { SHIFT_TYPES, ATTENDANCE_STATUSES } from '../../data/constants'
 
 const EMPTY = {
@@ -18,16 +18,11 @@ const statusColor = { Present: 'green', Absent: 'red', Late: 'amber', 'Half Day'
 
 export default function AttendanceLog() {
   const { rows, upsert } = useLocalData('attendance')
-  const [employees, setEmployees] = useState([])
+  const { employees, empName } = useEmployees()
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('mm_employees') || '[]')
-    setEmployees(stored.length ? stored : EMPLOYEES)
-  }, [])
 
   const filtered = rows.filter(r => r.date === filterDate)
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
@@ -38,8 +33,6 @@ export default function AttendanceLog() {
     setSaving(false)
     setModal(false)
   }
-
-  const empName = id => employees.find(e => e.id === id)?.name || id
 
   return (
     <div className="space-y-4">

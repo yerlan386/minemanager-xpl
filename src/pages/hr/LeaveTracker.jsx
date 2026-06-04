@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { format, differenceInDays, parseISO } from 'date-fns'
 import { Plus, ChevronRight } from 'lucide-react'
 import { useLocalData } from '../../hooks/useLocalData'
+import { useEmployees } from '../../hooks/useEmployees'
 import { Select, Input } from '../../components/ui/FormField'
 import { Modal } from '../../components/ui/Modal'
-import { EMPLOYEES } from '../../data/employees'
 import { LEAVE_TYPES } from '../../data/constants'
 
 const EMPTY = {
@@ -15,17 +15,10 @@ const EMPTY = {
 
 export default function LeaveTracker() {
   const { rows: leave, upsert } = useLocalData('leave_records')
-  const [employees, setEmployees] = useState([])
+  const { employees, salaried: activeEmps } = useEmployees()
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('mm_employees') || '[]')
-    setEmployees(stored.length ? stored : EMPLOYEES)
-  }, [])
-
-  const activeEmps = employees.filter(e => e.status === 'Active' && e.monthlyRate > 0)
 
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
 

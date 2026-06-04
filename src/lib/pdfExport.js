@@ -1,6 +1,9 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
+import { EMPLOYEES } from '../data/employees'
+
+const empName = id => EMPLOYEES.find(e => e.id === id)?.name || id || '—'
 
 const NAVY  = [27, 42, 74]
 const GOLD  = [212, 160, 23]
@@ -44,7 +47,7 @@ export function generateHandoverPDF(handover) {
   y = addSection(doc, y, 'Shift Information')
   const info = [
     ['Date', handover.date || '—', 'Shift', handover.shift || '—'],
-    ['Outgoing Supervisor', handover.outgoing_supervisor_id || '—', 'Incoming Supervisor', handover.incoming_supervisor_id || '—'],
+    ['Outgoing Supervisor', empName(handover.outgoing_supervisor_id), 'Incoming Supervisor', empName(handover.incoming_supervisor_id)],
     ['Overall Status', handover.overall_status || '—', 'Workers On Site', handover.workers_on_site || '—']
   ]
   autoTable(doc, { startY: y, body: info, theme: 'plain', styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 }, 2: { fontStyle: 'bold', cellWidth: 45 } } })

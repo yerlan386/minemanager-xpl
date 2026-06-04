@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { Plus, Shield, AlertTriangle, HeartPulse, Package } from 'lucide-react'
 import { useLocalData } from '../../hooks/useLocalData'
+import { useEmployees } from '../../hooks/useEmployees'
 import { Select, Input, VoiceTextarea, NumberInput } from '../../components/ui/FormField'
 import { StatusBadge, Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { EMPLOYEES } from '../../data/employees'
 import { INCIDENT_TYPES, SEVERITY_LEVELS, INCIDENT_STATUSES, PPE_ITEMS, SHIFT_TYPES } from '../../data/constants'
 
 const INCIDENT_EMPTY = {
@@ -38,16 +38,11 @@ export default function HSEPage() {
   const { rows: toolbox, upsert: upsertToolbox } = useLocalData('toolbox_talks')
   const { rows: firstaid, upsert: upsertFirstAid } = useLocalData('first_aid_log')
   const { rows: ppe, upsert: upsertPPE } = useLocalData('ppe_issuance')
+  const { employees, active: activeEmps, empName } = useEmployees()
   const [tab, setTab] = useState('incidents')
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(INCIDENT_EMPTY)
   const [saving, setSaving] = useState(false)
-  const [employees, setEmployees] = useState([])
-
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('mm_employees') || '[]')
-    setEmployees(stored.length ? stored : EMPLOYEES)
-  }, [])
 
   const tabs = [
     { key: 'incidents', label: 'Incidents', icon: AlertTriangle },
@@ -55,8 +50,6 @@ export default function HSEPage() {
     { key: 'firstaid',  label: 'First Aid', icon: HeartPulse },
     { key: 'ppe',       label: 'PPE',       icon: Package }
   ]
-
-  const empName = id => employees.find(e => e.id === id)?.name || id
 
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
 
@@ -220,7 +213,7 @@ export default function HSEPage() {
             <div>
               <label className="form-label">Attendees</label>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-gray-50 rounded-xl p-3">
-                {employees.filter(e => e.status === 'Active').map(e => (
+                {activeEmps.map(e => (
                   <label key={e.id} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="rounded"
                       checked={(form.attendees || []).includes(e.id)}

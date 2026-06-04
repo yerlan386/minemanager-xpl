@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { Plus, AlertTriangle, Star, FileText } from 'lucide-react'
 import { useLocalData } from '../../hooks/useLocalData'
+import { useEmployees } from '../../hooks/useEmployees'
 import { Select, Input, VoiceTextarea } from '../../components/ui/FormField'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
-import { EMPLOYEES } from '../../data/employees'
 import { DISCIPLINARY_TYPES } from '../../data/constants'
 
 const EMPTY = {
@@ -21,18 +21,12 @@ const typeIcon = { 'Commendation': Star, 'Incident': AlertTriangle }
 
 export default function DisciplinaryLog() {
   const { rows, upsert } = useLocalData('disciplinary')
-  const [employees, setEmployees] = useState([])
+  const { employees, empName } = useEmployees()
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('mm_employees') || '[]')
-    setEmployees(stored.length ? stored : EMPLOYEES)
-  }, [])
-
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
-  const empName = id => employees.find(e => e.id === id)?.name || id
 
   async function handleSave() {
     setSaving(true)
