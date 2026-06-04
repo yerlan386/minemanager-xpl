@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>MineManager XPL — Demo</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy: { DEFAULT:'#1B2A4A', light:'#243561' },
+        gold: { DEFAULT:'#D4A017', light:'#E8B832' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background:#F8F9FA; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 18px; border-radius:12px; font-weight:600; font-size:15px; min-height:44px; cursor:pointer; transition:all .15s; border:none; }
+  .btn:active { transform:scale(.97); }
+  .btn-primary { background:#1B2A4A; color:#fff; }
+  .btn-primary:hover { background:#243561; }
+  .btn-gold { background:#D4A017; color:#1B2A4A; }
+  .btn-outline { background:#fff; color:#1B2A4A; border:2px solid #1B2A4A; }
+  .btn-danger { background:#DC2626; color:#fff; }
+  .card { background:#fff; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid #f1f5f9; padding:16px; }
+  .form-input,.form-select { width:100%; border:1.5px solid #d1d5db; border-radius:12px; padding:12px 14px; font-size:15px; outline:none; transition:border .15s; }
+  .form-input:focus,.form-select:focus { border-color:#1B2A4A; box-shadow:0 0 0 2px rgba(27,42,74,.12); }
+  .form-label { display:block; font-weight:600; font-size:13px; color:#374151; margin-bottom:4px; }
+  .badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+  .badge-green  { background:#dcfce7; color:#166534; }
+  .badge-amber  { background:#fef9c3; color:#854d0e; }
+  .badge-red    { background:#fee2e2; color:#991b1b; }
+  .badge-navy   { background:#1B2A4A; color:#fff; }
+  .badge-blue   { background:#dbeafe; color:#1e40af; }
+  .badge-gray   { background:#f3f4f6; color:#4b5563; }
+  .nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; padding:8px 4px; cursor:pointer; color:#9ca3af; font-size:10px; font-weight:600; gap:2px; transition:color .15s; }
+  .nav-item.active { color:#1B2A4A; }
+  .nav-icon { padding:6px; border-radius:10px; }
+  .nav-item.active .nav-icon { background:rgba(212,160,23,.2); }
+  .scrollbar-hide::-webkit-scrollbar { display:none; }
+  input[type=checkbox] { width:16px; height:16px; accent-color:#1B2A4A; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+// ── Mini React app — no build step ──────────────────────────────────────────
+
+const { useState, useEffect, useCallback } = React
+
+// ── State ──────────────────────────────────────────────────────────────────
+let APP_STATE = {
+  user: null,
+  screen: 'login',        // login | dashboard | shift | hr | operations | compliance | goldroom
+  subscreen: null,        // e.g. 'handover_new'
+  si91: false,
+  handovers: [],
+  incidents: []
+}
+
+const USERS = [
+  { id:'u1', name:'Earl',          role:'Owner',            email:'earl@celestium.zw',     password:'demo1234' },
+  { id:'u2', name:'Piyo Chiradza', role:'Mine Manager',     email:'piyo@celestium.zw',     password:'demo1234' },
+  { id:'u3', name:'Kenneth',       role:'Shift Supervisor', email:'kenneth@celestium.zw',  password:'demo1234' },
+  { id:'u4', name:'Thomas',        role:'HSE Officer',      email:'thomas@celestium.zw',   password:'demo1234' },
+  { id:'u5', name:'Tirika',        role:'Metallurgist',     email:'tirika@celestium.zw',   password:'demo1234' },
+  { id:'u6', name:'Cloudias',      role:'HR/Admin',         email:'cloudias@celestium.zw', password:'demo1234' }
+]
+
+const EMPLOYEES = [
+  'Piyo Chiradza','Kenneth Matombo','Johnson','Thomas Chikore',
+  'Tirika Faresi','Calvin','Andrew Kavhala','Morgan Mutenda',
+  'Blessing Mbizi','Dyesolodge Kutyauripo','Obert Chingondo','Isiah Chidhana',
+  'Cloudias Musoni','Ernest Nyakudya','Webbester Kupera','Bvunye Chiwayo'
+]
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function today() { return new Date().toLocaleDateString('en-ZA') }
+function now()   { return new Date().toLocaleTimeString('en-ZA', {hour:'2-digit',minute:'2-digit'}) }
+function activeShift() { const h = new Date().getHours(); return h >= 6 && h < 18 ? 'Day Shift' : 'Night Shift' }
+
+// ── SVG Icons ──────────────────────────────────────────────────────────────
+const Icons = {
+  Home:      ()=><svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>,
+  Pickaxe:   ()=><svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="14" y1="10" x2="3" y2="21"/><path d="M21 3l-6 6M9 3l6 6-9 9 6-6 3 3M3 9l3-3 3 3"/></svg>,
+  Users:     ()=><svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  Wrench:    ()=><svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+  Clipboard: ()=><svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>,
+  Lock:      ()=><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  Check:     ()=><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+  Alert:     ()=><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Plus:      ()=><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  ChevronR:  ()=><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>,
+  LogOut:    ()=><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  HardHat:   ()=><svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 10V5a2 2 0 0 1 4 0v5"/><path d="M12 2a10 10 0 0 0-9 5.3c0 .4 0 .7.1 1h17.7c.1-.3.1-.6.1-1A10 10 0 0 0 12 2z"/></svg>,
+  Shield:    ()=><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Circle:    ()=><svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>,
+  CheckCircle:()=><svg width="22" height="22" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+  Download:  ()=><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  Mic:       ()=><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+}
+
+// ── Components ─────────────────────────────────────────────────────────────
+function Badge({color, children}) {
+  const colors = {green:'badge-green',amber:'badge-amber',red:'badge-red',navy:'badge-navy',blue:'badge-blue',gray:'badge-gray'}
+  return <span className={`badge ${colors[color]||'badge-gray'}`}>{children}</span>
+}
+
+function KPICard({label, value, unit, accent}) {
+  return (
+    <div className={`card border-l-4 ${accent||'border-l-[#1B2A4A]'}`} style={{borderLeftWidth:4}}>
+      <p style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</p>
+      <div style={{display:'flex',alignItems:'baseline',gap:4,marginTop:4}}>
+        <span style={{fontSize:26,fontWeight:800,color:'#1B2A4A'}}>{value||'—'}</span>
+        {unit && <span style={{fontSize:13,color:'#9ca3af',fontWeight:500}}>{unit}</span>}
+      </div>
+    </div>
+  )
+}
+
+function BottomNav({screen, setScreen}) {
+  const tabs = [
+    {id:'dashboard', label:'Dashboard', Icon:Icons.Home},
+    {id:'shift',     label:'Shift',     Icon:Icons.Pickaxe},
+    {id:'hr',        label:'HR',        Icon:Icons.Users},
+    {id:'operations',label:'Operations',Icon:Icons.Wrench},
+    {id:'compliance',label:'Compliance',Icon:Icons.Clipboard}
+  ]
+  return (
+    <nav style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'1px solid #e5e7eb',display:'flex',zIndex:50}}>
+      {tabs.map(({id,label,Icon}) => (
+        <div key={id} className={`nav-item ${screen===id?'active':''}`} onClick={()=>setScreen(id)}>
+          <div className="nav-icon"><Icon/></div>
+          <span>{label}</span>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
+function Header({user, onLogout, isOnline}) {
+  const [showMenu, setShowMenu] = useState(false)
+  return (
+    <header style={{background:'#1B2A4A',color:'#fff',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:40}}>
+      <div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{color:'#D4A017',fontWeight:800,fontSize:18}}>MineManager</span>
+          <span style={{background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',fontSize:11,fontWeight:700,padding:'2px 6px',borderRadius:6}}>XPL</span>
+        </div>
+        <p style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>Celestium Corporate Ltd</p>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        {!isOnline && <span style={{background:'rgba(239,68,68,.2)',color:'#fca5a5',fontSize:11,fontWeight:700,padding:'4px 8px',borderRadius:8}}>● Offline</span>}
+        <div style={{position:'relative'}}>
+          <button onClick={()=>setShowMenu(p=>!p)} style={{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',padding:'8px 12px',borderRadius:10,cursor:'pointer',fontSize:13,fontWeight:600}}>
+            {user?.name?.split(' ')[0]} ▾
+          </button>
+          {showMenu && (
+            <div style={{position:'absolute',right:0,top:'calc(100% + 6px)',background:'#fff',borderRadius:14,boxShadow:'0 10px 30px rgba(0,0,0,.15)',minWidth:180,overflow:'hidden',zIndex:100}}>
+              <div style={{padding:'12px 16px',borderBottom:'1px solid #f3f4f6'}}>
+                <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14}}>{user?.name}</p>
+                <p style={{fontSize:12,color:'#9ca3af'}}>{user?.role}</p>
+              </div>
+              <button onClick={onLogout} style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',width:'100%',background:'none',border:'none',color:'#dc2626',fontWeight:600,fontSize:14,cursor:'pointer'}}>
+                <Icons.LogOut/> Sign Out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+function Login({onLogin}) {
+  const [email, setEmail] = useState('')
+  const [pw, setPw] = useState('')
+  const [err, setErr] = useState('')
+
+  function handle(e) {
+    e.preventDefault()
+    const u = USERS.find(u => u.email === email && u.password === pw)
+    if (!u) { setErr('Invalid email or password'); return }
+    onLogin(u)
+  }
+
+  return (
+    <div style={{minHeight:'100vh',background:'#1B2A4A',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24}}>
+      <div style={{width:'100%',maxWidth:360}}>
+        <div style={{textAlign:'center',marginBottom:32}}>
+          <div style={{width:72,height:72,background:'#D4A017',borderRadius:20,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+            <Icons.HardHat/>
+          </div>
+          <h1 style={{color:'#fff',fontSize:32,fontWeight:800,margin:0}}>MineManager</h1>
+          <p style={{color:'#D4A017',fontWeight:700,fontSize:20,margin:'4px 0 0'}}>XPL</p>
+          <p style={{color:'rgba(255,255,255,.4)',fontSize:13,marginTop:4}}>Celestium Corporate Ltd · Dande, Zimbabwe</p>
+        </div>
+
+        <div style={{background:'#fff',borderRadius:20,padding:24,boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+          <form onSubmit={handle} style={{display:'flex',flexDirection:'column',gap:16}}>
+            <div>
+              <label className="form-label">Email</label>
+              <input className="form-input" type="email" placeholder="you@celestium.zw" value={email} onChange={e=>setEmail(e.target.value)} required/>
+            </div>
+            <div>
+              <label className="form-label">Password</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={pw} onChange={e=>setPw(e.target.value)} required/>
+            </div>
+            {err && <p style={{color:'#dc2626',fontSize:13,fontWeight:600,background:'#fef2f2',padding:'8px 12px',borderRadius:10,margin:0}}>{err}</p>}
+            <button type="submit" className="btn btn-primary" style={{width:'100%',fontSize:16,padding:'14px'}}>Sign In</button>
+          </form>
+
+          <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid #f3f4f6'}}>
+            <p style={{fontSize:11,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>Quick Demo Login</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              {USERS.map(u => (
+                <button key={u.id} type="button" onClick={()=>{setEmail(u.email);setPw(u.password)}}
+                  style={{textAlign:'left',padding:'10px',borderRadius:10,border:'1.5px solid #e5e7eb',background:'#fff',cursor:'pointer',transition:'all .15s'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor='#1B2A4A';e.currentTarget.style.background='#f8faff'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='#e5e7eb';e.currentTarget.style.background='#fff'}}>
+                  <p style={{fontWeight:700,color:'#1B2A4A',fontSize:12,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.name}</p>
+                  <p style={{color:'#9ca3af',fontSize:10,margin:0}}>{u.role}</p>
+                </button>
+              ))}
+            </div>
+            <p style={{fontSize:11,color:'#9ca3af',textAlign:'center',marginTop:8}}>Password: demo1234</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+function Dashboard({user, si91, setSI91, setScreen}) {
+  const goldAccess = ['Owner','Mine Manager','Metallurgist'].includes(user?.role)
+  const [confirming, setConfirming] = useState(false)
+
+  function confirm() {
+    setConfirming(true)
+    setTimeout(()=>{setSI91(true);setConfirming(false)},800)
+  }
+
+  return (
+    <div style={{padding:16, paddingBottom:80, display:'flex',flexDirection:'column',gap:16}}>
+      {/* Banner */}
+      <div style={{background:'#1B2A4A',borderRadius:20,padding:'18px 20px',color:'#fff'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:12,margin:0}}>Today</p>
+            <p style={{fontWeight:800,fontSize:18,margin:'2px 0'}}>
+              {new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+            </p>
+            <p style={{color:'#D4A017',fontWeight:700,fontSize:14,margin:0}}>{activeShift()}</p>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:11,margin:0}}>Logged in as</p>
+            <p style={{fontWeight:700,fontSize:13,margin:'2px 0'}}>{user?.name}</p>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:11,margin:0}}>{user?.role}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* SI 91 */}
+      <div style={{
+        background: si91 ? '#f0fdf4' : '#fffbeb',
+        border: `2px solid ${si91 ? '#86efac' : '#fcd34d'}`,
+        borderRadius:16,padding:16,display:'flex',alignItems:'center',gap:12
+      }}>
+        <div style={{flexShrink:0}}>{si91 ? <Icons.CheckCircle/> : <Icons.Circle/>}</div>
+        <div style={{flex:1}}>
+          <p style={{fontWeight:700,fontSize:13,color:'#1B2A4A',margin:'0 0 2px'}}>SI 91 of 2026 — Daily Confirmation</p>
+          <p style={{fontSize:11,color:'#6b7280',margin:0}}>Statutory Instrument 91: Mining (Health, Safety & Environment) Regulations</p>
+          {si91 && <p style={{fontSize:11,color:'#16a34a',fontWeight:700,marginTop:4}}>✓ Confirmed by {user?.name} · {now()}</p>}
+        </div>
+        {!si91 && (
+          <button onClick={confirm} disabled={confirming} className="btn btn-gold" style={{padding:'8px 16px',fontSize:13,flexShrink:0}}>
+            {confirming ? '…' : 'Confirm'}
+          </button>
+        )}
+      </div>
+
+      {/* Alerts */}
+      {!si91 && (
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <p style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'.06em',margin:0}}>Active Alerts</p>
+          <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:12,padding:'10px 14px',display:'flex',gap:8,alignItems:'flex-start'}}>
+            <Icons.Alert/>
+            <span style={{fontSize:13,fontWeight:600,color:'#991b1b'}}>SI 91 not confirmed for today's shift</span>
+          </div>
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div>
+        <p style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'.06em',margin:'0 0 12px'}}>Today's Production</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          <KPICard label="Tonnes" value="847" unit="t" accent="border-l-[#1B2A4A]"/>
+          <KPICard label="Gold" value="4.82" unit="g" accent="border-l-[#D4A017]"/>
+          <KPICard label="Run-Time" value="19.5" unit="hrs" accent="border-l-[#16a34a]"/>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <p style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'.06em',margin:'0 0 12px'}}>Quick Actions</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          {[
+            {label:'New Handover', sub:'Log shift changeover', color:'#1B2A4A', to:'shift'},
+            {label:'Log Incident', sub:'HSE report', color:'#dc2626', to:'compliance'},
+            {label:'Procurement', sub:'Purchase request', color:'#D4A017', to:'operations'},
+            goldAccess && {label:'Gold Room', sub:'Restricted access', color:'#D4A017', to:'goldroom', gold:true}
+          ].filter(Boolean).map(item => (
+            <button key={item.label} onClick={()=>setScreen(item.to)} style={{
+              background:'#fff',border:'2px solid transparent',borderRadius:16,padding:14,textAlign:'left',cursor:'pointer',transition:'all .2s',boxShadow:'0 1px 3px rgba(0,0,0,.08)'
+            }}
+            onMouseOver={e=>e.currentTarget.style.borderColor=item.color}
+            onMouseOut={e=>e.currentTarget.style.borderColor='transparent'}>
+              <div style={{width:40,height:40,borderRadius:12,background:`${item.color}20`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8}}>
+                {item.gold ? <Icons.Lock/> : item.to==='compliance' ? <Icons.Alert/> : item.to==='operations' ? <Icons.Wrench/> : <Icons.Plus/>}
+              </div>
+              <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:'0 0 2px'}}>{item.label}</p>
+              <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{item.sub}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── SHIFT ──────────────────────────────────────────────────────────────────
+function Shift() {
+  const [view, setView] = useState('list')
+  const [handovers, setHandovers] = useState([
+    {id:'h1', date:'2026-06-03', shift:'Day',   outgoing:'Kenneth Matombo', incoming:'Johnson',          ore:872, gold:4.91, workers:18, status:'Normal',   submitted:true},
+    {id:'h2', date:'2026-06-03', shift:'Night', outgoing:'Johnson',         incoming:'Kenneth Matombo', ore:803, gold:4.23, workers:16, status:'Caution',  submitted:true},
+    {id:'h3', date:'2026-06-04', shift:'Day',   outgoing:'Kenneth Matombo', incoming:'Johnson',          ore:847, gold:4.82, workers:18, status:'Normal',   submitted:false}
+  ])
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0,10), shift:'Day',
+    outgoing:'Kenneth Matombo', incoming:'Johnson',
+    ore:'', gold:'', workers:'', incidents:'', equipment:'', tasks:'', safety:'', status:'Normal'
+  })
+  const [submitted, setSubmitted] = useState(false)
+
+  const statusColor = {Normal:'badge-green',Caution:'badge-amber',Critical:'badge-red'}
+
+  if (submitted) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,textAlign:'center',gap:16}}>
+      <div style={{width:80,height:80,background:'#dcfce7',borderRadius:40,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Icons.CheckCircle/>
+      </div>
+      <h2 style={{color:'#1B2A4A',fontSize:22,fontWeight:800,margin:0}}>Handover Submitted</h2>
+      <p style={{color:'#9ca3af',fontSize:14}}>The incoming supervisor has been notified.</p>
+      <div style={{display:'flex',gap:12}}>
+        <button className="btn btn-outline" onClick={()=>{setSubmitted(false);setView('list')}}>Back</button>
+        <button className="btn btn-primary" style={{gap:8}}>
+          <Icons.Download/> Export PDF
+        </button>
+      </div>
+    </div>
+  )
+
+  if (view === 'new') return (
+    <div style={{padding:16,paddingBottom:80,display:'flex',flexDirection:'column',gap:16}}>
+      <button onClick={()=>setView('list')} style={{background:'none',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:8,color:'#1B2A4A',fontWeight:600,fontSize:14,padding:0}}>
+        ← Back
+      </button>
+      <h2 style={{fontWeight:800,color:'#1B2A4A',fontSize:20,margin:0}}>New Handover</h2>
+
+      <div className="card" style={{display:'flex',flexDirection:'column',gap:14}}>
+        <p style={{fontWeight:700,color:'#1B2A4A',fontSize:12,textTransform:'uppercase',letterSpacing:'.06em',margin:0}}>Shift Details</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div><label className="form-label">Date</label><input type="date" className="form-input" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
+          <div><label className="form-label">Shift</label>
+            <select className="form-select" value={form.shift} onChange={e=>setForm(p=>({...p,shift:e.target.value}))}>
+              <option>Day</option><option>Night</option>
+            </select>
+          </div>
+        </div>
+        <div><label className="form-label">Outgoing Supervisor</label>
+          <select className="form-select" value={form.outgoing} onChange={e=>setForm(p=>({...p,outgoing:e.target.value}))}>
+            {['Kenneth Matombo','Johnson','Piyo Chiradza'].map(n=><option key={n}>{n}</option>)}
+          </select>
+        </div>
+        <div><label className="form-label">Incoming Supervisor</label>
+          <select className="form-select" value={form.incoming} onChange={e=>setForm(p=>({...p,incoming:e.target.value}))}>
+            {['Johnson','Kenneth Matombo','Piyo Chiradza'].map(n=><option key={n}>{n}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="card" style={{display:'flex',flexDirection:'column',gap:14}}>
+        <p style={{fontWeight:700,color:'#1B2A4A',fontSize:12,textTransform:'uppercase',letterSpacing:'.06em',margin:0}}>Production</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          <div><label className="form-label">Ore (t)</label><input type="number" className="form-input" placeholder="0" value={form.ore} onChange={e=>setForm(p=>({...p,ore:e.target.value}))}/></div>
+          <div><label className="form-label">Gold (g)</label><input type="number" className="form-input" placeholder="0.00" step="0.01" value={form.gold} onChange={e=>setForm(p=>({...p,gold:e.target.value}))}/></div>
+          <div><label className="form-label">Workers</label><input type="number" className="form-input" placeholder="0" value={form.workers} onChange={e=>setForm(p=>({...p,workers:e.target.value}))}/></div>
+        </div>
+      </div>
+
+      <div className="card" style={{display:'flex',flexDirection:'column',gap:14}}>
+        <p style={{fontWeight:700,color:'#1B2A4A',fontSize:12,textTransform:'uppercase',letterSpacing:'.06em',margin:0}}>Notes</p>
+        {[
+          {f:'incidents',label:'Incidents Summary'},
+          {f:'equipment',label:'Equipment Status'},
+          {f:'tasks',label:'Outstanding Tasks'},
+          {f:'safety',label:'Safety Notes'}
+        ].map(({f,label})=>(
+          <div key={f}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <label className="form-label" style={{margin:0}}>{label}</label>
+              <span title="Voice input (use full app)" style={{background:'#f3f4f6',borderRadius:8,padding:4,cursor:'default',opacity:.6}}><Icons.Mic/></span>
+            </div>
+            <textarea className="form-input" rows={2} style={{resize:'none',fontFamily:'inherit'}}
+              placeholder={`${label}…`} value={form[f]} onChange={e=>setForm(p=>({...p,[f]:e.target.value}))}/>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <p style={{fontWeight:700,color:'#1B2A4A',fontSize:12,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>Overall Status</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+          {[['Normal','🟢','#16a34a','#f0fdf4','#86efac'],['Caution','🟡','#d97706','#fffbeb','#fcd34d'],['Critical','🔴','#dc2626','#fef2f2','#fecaca']].map(([s,e,tc,bg,bc])=>(
+            <button key={s} onClick={()=>setForm(p=>({...p,status:s}))} style={{
+              padding:'12px 8px',borderRadius:12,border:`2px solid ${form.status===s?bc:'#e5e7eb'}`,
+              background:form.status===s?bg:'#fff',color:form.status===s?tc:'#6b7280',fontWeight:700,fontSize:13,cursor:'pointer',transition:'all .15s'
+            }}>{e} {s}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:12,paddingBottom:8}}>
+        <button className="btn btn-outline" style={{flex:1}} onClick={()=>setView('list')}>Save Draft</button>
+        <button className="btn btn-primary" style={{flex:1}} onClick={()=>setSubmitted(true)}>Submit Handover</button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{padding:16,paddingBottom:80,display:'flex',flexDirection:'column',gap:16}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <h1 style={{fontWeight:800,color:'#1B2A4A',fontSize:22,margin:0}}>Shift</h1>
+        <button className="btn btn-primary" style={{fontSize:13,padding:'8px 16px'}} onClick={()=>setView('new')}>
+          <Icons.Plus/> New Handover
+        </button>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {handovers.map(h=>(
+          <button key={h.id} onClick={()=>setView('new')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,width:'100%',background:'#fff',border:'1px solid #f1f5f9',borderRadius:16,padding:14,cursor:'pointer',textAlign:'left',boxShadow:'0 1px 3px rgba(0,0,0,.06)'}}>
+            <div style={{flex:1}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                <span style={{background:'#1B2A4A',color:'#fff',fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:999}}>{h.shift}</span>
+                <span style={{fontWeight:700,color:'#1B2A4A',fontSize:14}}>{h.date}</span>
+                <Badge color={h.status==='Normal'?'green':h.status==='Caution'?'amber':'red'}>{h.status}</Badge>
+              </div>
+              <p style={{fontSize:12,color:'#9ca3af',margin:'0 0 6px'}}>{h.outgoing} → {h.incoming}</p>
+              <div style={{display:'flex',gap:16,fontSize:12,color:'#6b7280'}}>
+                <span><strong>{h.ore}t</strong> ore</span>
+                <span><strong>{h.gold}g</strong> gold</span>
+                <span><strong>{h.workers}</strong> workers</span>
+              </div>
+            </div>
+            <Icons.ChevronR/>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── HR ─────────────────────────────────────────────────────────────────────
+function HR() {
+  const [tab, setTab] = useState('employees')
+  const dept = {
+    'Production Leadership': ['Piyo Chiradza (Mine Manager)','Kenneth Matombo (Shift Supervisor)','Johnson (Shift Supervisor)'],
+    'HSE': ['Thomas Chikore (HSE Officer)'],
+    'Plant Operations': ['Tirika Faresi (Metallurgist)','Calvin (Plant Operator)','Andrew Kavhala (Plant Operator)','Blessing Mbizi','Dyesolodge Kutyauripo','Ernest Nyakudya','Webbester Kupera'],
+    'Mining & Earthmoving': ['Obert Chingondo','Isiah Chidhana','Bvunye Chiwayo'],
+    'Maintenance': ['Morgan Mutenda (Artisan)'],
+    'Admin & Support': ['Cloudias Musoni (HR/Admin)','Security (Outsourced)']
+  }
+  const payroll = [
+    {name:'Piyo Chiradza',role:'Mine Manager',rate:1200,days:31,status:'Paid',net:1127},
+    {name:'Kenneth Matombo',role:'Shift Supervisor',rate:800,days:31,status:'Paid',net:742},
+    {name:'Johnson',role:'Shift Supervisor',rate:800,days:31,status:'Unpaid',net:742},
+    {name:'Thomas Chikore',role:'HSE Officer',rate:700,days:31,status:'Paid',net:648},
+    {name:'Tirika Faresi',role:'Metallurgist',rate:900,days:31,status:'Paid',net:842},
+    {name:'Cloudias Musoni',role:'HR/Admin',rate:550,days:31,status:'Partial',net:514}
+  ]
+
+  return (
+    <div style={{padding:16,paddingBottom:80}}>
+      <h1 style={{fontWeight:800,color:'#1B2A4A',fontSize:22,margin:'0 0 16px'}}>HR</h1>
+      <div style={{display:'flex',gap:6,background:'#f3f4f6',borderRadius:14,padding:4,marginBottom:16,overflowX:'auto'}}>
+        {['employees','payroll','roster'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            flex:'1 0 auto',padding:'8px 16px',borderRadius:10,fontSize:13,fontWeight:700,border:'none',cursor:'pointer',textTransform:'capitalize',
+            background:tab===t?'#fff':'transparent',color:tab===t?'#1B2A4A':'#6b7280',
+            boxShadow:tab===t?'0 1px 4px rgba(0,0,0,.12)':'none',transition:'all .15s'
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {tab==='employees' && (
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {Object.entries(dept).map(([d, members])=>(
+            <div key={d} className="card">
+              <p style={{fontWeight:700,color:'#1B2A4A',fontSize:13,margin:'0 0 10px'}}>{d}</p>
+              {members.map(m=>{
+                const name = m.split(' (')[0]
+                const role = m.match(/\((.+)\)/)?.[1]
+                const isOut = m.includes('Outsourced')
+                return (
+                  <div key={m} style={{display:'flex',alignItems:'center',gap:12,padding:'8px 0',borderBottom:'1px solid #f9fafb'}}>
+                    <div style={{width:34,height:34,borderRadius:10,background:'#1B2A4A',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:13,flexShrink:0}}>
+                      {name.charAt(0)}
+                    </div>
+                    <div style={{flex:1}}>
+                      <p style={{fontWeight:700,fontSize:13,color:'#1B2A4A',margin:0}}>{name}</p>
+                      {role && <p style={{fontSize:11,color:'#9ca3af',margin:0}}>{role}</p>}
+                    </div>
+                    <Badge color={isOut?'blue':'green'}>{isOut?'Outsourced':'Active'}</Badge>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='payroll' && (
+        <div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
+            <div className="card" style={{textAlign:'center'}}><p style={{fontSize:11,color:'#9ca3af',margin:'0 0 4px'}}>Gross Payroll</p><p style={{fontSize:22,fontWeight:800,color:'#1B2A4A',margin:0}}>$6,350</p></div>
+            <div className="card" style={{textAlign:'center'}}><p style={{fontSize:11,color:'#9ca3af',margin:'0 0 4px'}}>Net Payroll</p><p style={{fontSize:22,fontWeight:800,color:'#16a34a',margin:0}}>$5,940</p></div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {payroll.map(p=>(
+              <div key={p.name} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                <div>
+                  <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0}}>{p.name}</p>
+                  <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{p.role} · {p.days} days</p>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <Badge color={p.status==='Paid'?'green':p.status==='Unpaid'?'red':'amber'}>{p.status}</Badge>
+                  <p style={{fontSize:13,fontWeight:700,color:'#1B2A4A',margin:'4px 0 0'}}>${p.net}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==='roster' && (
+        <div>
+          <div className="card" style={{marginBottom:16}}>
+            <p style={{fontWeight:700,color:'#9ca3af',fontSize:11,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>On Site Today — Crew A</p>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+              {['Kenneth Matombo','Calvin','Andrew Kavhala','Blessing Mbizi'].map(n=>(
+                <span key={n} style={{background:'rgba(27,42,74,.1)',color:'#1B2A4A',fontSize:12,fontWeight:700,padding:'4px 12px',borderRadius:999}}>{n}</span>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:8}}>
+              {['M','T','W','T','F','S','S'].map((d,i)=>(
+                <div key={i} style={{textAlign:'center',fontSize:11,fontWeight:700,color:'#9ca3af',padding:'4px 0'}}>{d}</div>
+              ))}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
+              {Array.from({length:30},(_,i)=>{
+                const crews = [['bg-blue-100 text-blue-800','A'],['bg-green-100 text-green-800','B'],['bg-gray-100 text-gray-600','M'],['bg-purple-100 text-purple-800','C']]
+                const c = (i+1)%7===4 ? crews[2] : crews[i%3]
+                const isToday = i+1===new Date().getDate()
+                return (
+                  <div key={i} style={{
+                    aspectRatio:'1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                    borderRadius:8,fontSize:10,fontWeight:700,
+                    background:isToday?'#1B2A4A':c[0].includes('blue')?'#dbeafe':c[0].includes('green')?'#dcfce7':c[0].includes('purple')?'#f3e8ff':'#f3f4f6',
+                    color:isToday?'#fff':c[0].includes('blue')?'#1e40af':c[0].includes('green')?'#166534':c[0].includes('purple')?'#7c3aed':'#4b5563',
+                    outline:isToday?'2px solid #D4A017':undefined
+                  }}>
+                    <span>{i+1}</span>
+                    <span style={{fontSize:8}}>{(i+1)%7===4?'M':c[1]}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
+              {[['#dbeafe','#1e40af','A — Crew A'],['#dcfce7','#166534','B — Crew B'],['#f3e8ff','#7c3aed','C — Crew C'],['#f3f4f6','#4b5563','M — Maintenance']].map(([bg,c,l])=>(
+                <div key={l} style={{display:'flex',alignItems:'center',gap:6}}>
+                  <div style={{width:14,height:14,borderRadius:4,background:bg,border:`1px solid ${c}`}}/>
+                  <span style={{fontSize:11,color:c,fontWeight:700}}>{l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── OPERATIONS ─────────────────────────────────────────────────────────────
+function Operations() {
+  const [tab, setTab] = useState('maintenance')
+  const faults = [
+    {eq:'140 TPH Scrubber',desc:'Vibrating screen bearing noise — monitor',sev:'Medium',status:'Open',date:'2026-06-03'},
+    {eq:'D7 Dozer',desc:'Hydraulic hose leak on blade cylinder',sev:'High',status:'In Progress',date:'2026-06-02'},
+    {eq:'Centrifugal Concentrator',desc:'Scheduled service complete',sev:'Low',status:'Closed',date:'2026-06-01'}
+  ]
+  const consumables = [
+    {name:'Donaldson Filter P550169',qty:2,threshold:3,unit:'each'},
+    {name:'Hydraulic Oil 46 (200L)',qty:8,threshold:4,unit:'drums'},
+    {name:'Grease Cartridges',qty:12,threshold:10,unit:'each'},
+    {name:'Diesel (Site Tank)',qty:1200,threshold:500,unit:'L'}
+  ]
+
+  return (
+    <div style={{padding:16,paddingBottom:80}}>
+      <h1 style={{fontWeight:800,color:'#1B2A4A',fontSize:22,margin:'0 0 16px'}}>Operations</h1>
+      <div style={{display:'flex',gap:6,background:'#f3f4f6',borderRadius:14,padding:4,marginBottom:16}}>
+        {['maintenance','equipment','procurement'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            flex:1,padding:'8px 12px',borderRadius:10,fontSize:12,fontWeight:700,border:'none',cursor:'pointer',textTransform:'capitalize',
+            background:tab===t?'#fff':'transparent',color:tab===t?'#1B2A4A':'#6b7280',boxShadow:tab===t?'0 1px 4px rgba(0,0,0,.12)':'none',transition:'all .15s'
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {tab==='maintenance' && (
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          <div style={{background:'#fffbeb',border:'1px solid #fcd34d',borderRadius:14,padding:'10px 14px',display:'flex',gap:8}}>
+            <Icons.Alert/><span style={{fontSize:13,fontWeight:600,color:'#92400e'}}>Low stock: Donaldson Filter P550169 (2 remaining)</span>
+          </div>
+          {faults.map(f=>(
+            <div key={f.eq} className="card">
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:6}}>
+                <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0}}>{f.eq}</p>
+                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                  <Badge color={f.sev==='High'?'red':f.sev==='Medium'?'amber':'gray'}>{f.sev}</Badge>
+                  <Badge color={f.status==='Closed'?'green':f.status==='In Progress'?'amber':'red'}>{f.status}</Badge>
+                </div>
+              </div>
+              <p style={{fontSize:13,color:'#6b7280',margin:'0 0 6px'}}>{f.desc}</p>
+              <p style={{fontSize:11,color:'#9ca3af',margin:0}}>{f.date}</p>
+            </div>
+          ))}
+          <div>
+            <p style={{fontWeight:700,color:'#1B2A4A',fontSize:13,margin:'8px 0 10px',textTransform:'uppercase',letterSpacing:'.06em',fontSize:11}}>Consumables Inventory</p>
+            {consumables.map(c=>{
+              const low = c.qty <= c.threshold
+              return (
+                <div key={c.name} className="card" style={{marginBottom:8,borderLeft:`4px solid ${low?'#dc2626':'#e5e7eb'}`}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div>
+                      <p style={{fontWeight:700,fontSize:13,color:'#1B2A4A',margin:0}}>{c.name}</p>
+                      <p style={{fontSize:11,color:'#9ca3af',margin:0}}>Reorder at: {c.threshold} {c.unit}</p>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <p style={{fontSize:22,fontWeight:800,color:low?'#dc2626':'#1B2A4A',margin:0}}>{c.qty}</p>
+                      <p style={{fontSize:11,color:'#9ca3af',margin:0}}>{c.unit}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {tab==='equipment' && (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            {name:'140 TPH Scrubber',type:'Plant',hrs:19.5,status:'Running'},
+            {name:'D7 Dozer',type:'Earthmoving / Hired',hrs:8,status:'In Repair',rate:'$65/hr'},
+            {name:'Excavator 1',type:'Earthmoving / Hired',hrs:11,status:'Running'},
+            {name:'Dump Truck 1',type:'Vehicle / Hired',hrs:10,status:'Running'},
+            {name:'Dump Truck 2',type:'Vehicle / Hired',hrs:10,status:'Running'}
+          ].map(e=>(
+            <div key={e.name} className="card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <div>
+                <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0}}>{e.name}</p>
+                <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{e.type}{e.rate?` · ${e.rate}`:''}</p>
+              </div>
+              <div style={{textAlign:'right'}}>
+                <Badge color={e.status==='Running'?'green':'amber'}>{e.status}</Badge>
+                <p style={{fontSize:13,fontWeight:700,color:'#1B2A4A',margin:'4px 0 0'}}>{e.hrs}hrs today</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='procurement' && (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            {item:'Donaldson Filter P550169 x6',supplier:'HP Lubes',status:'In Transit',urgency:'Urgent',po:'PO-240601'},
+            {item:'Hydraulic Hose Assy (D7)',supplier:'TBA',status:'Approved',urgency:'Critical',po:'PO-240602'},
+            {item:'Grease Cartridges x24',supplier:'HP Lubes',status:'Draft',urgency:'Routine',po:''}
+          ].map(p=>(
+            <div key={p.po||p.item} className="card">
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:4}}>
+                <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0,flex:1}}>{p.item}</p>
+                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                  <Badge color={p.urgency==='Critical'?'red':p.urgency==='Urgent'?'amber':'gray'}>{p.urgency}</Badge>
+                  <Badge color={p.status==='In Transit'?'blue':p.status==='Approved'?'green':'gray'}>{p.status}</Badge>
+                </div>
+              </div>
+              <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{p.supplier}{p.po?` · ${p.po}`:''}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── COMPLIANCE ─────────────────────────────────────────────────────────────
+function Compliance() {
+  const [tab, setTab] = useState('incidents')
+  return (
+    <div style={{padding:16,paddingBottom:80}}>
+      <h1 style={{fontWeight:800,color:'#1B2A4A',fontSize:22,margin:'0 0 16px'}}>Compliance</h1>
+      <div style={{display:'flex',gap:6,background:'#f3f4f6',borderRadius:14,padding:4,marginBottom:16,overflowX:'auto'}}>
+        {['incidents','toolbox','permits','emergency'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            flex:'1 0 auto',padding:'8px 12px',borderRadius:10,fontSize:12,fontWeight:700,border:'none',cursor:'pointer',textTransform:'capitalize',
+            background:tab===t?'#fff':'transparent',color:tab===t?'#1B2A4A':'#6b7280',boxShadow:tab===t?'0 1px 4px rgba(0,0,0,.12)':'none',transition:'all .15s'
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {tab==='incidents' && (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            {type:'Near-Miss',sev:'Medium',date:'2026-06-03',time:'14:23',loc:'Scrubber Feed Area',desc:'Worker slipped on wet ore spillage near feed hopper. No injury. Spillage cleaned up immediately.',status:'Closed'},
+            {type:'Incident',sev:'High',date:'2026-06-01',time:'08:45',loc:'D7 Dozer',desc:'Hydraulic hose burst during operation. Operator evacuated safely. Equipment isolated.',status:'Open'}
+          ].map((i,idx)=>(
+            <div key={idx} className="card">
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:6}}>
+                <div>
+                  <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0}}>{i.type}</p>
+                  <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{i.date} {i.time} · {i.loc}</p>
+                </div>
+                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                  <Badge color={i.sev==='High'?'red':i.sev==='Medium'?'amber':'gray'}>{i.sev}</Badge>
+                  <Badge color={i.status==='Closed'?'green':'red'}>{i.status}</Badge>
+                </div>
+              </div>
+              <p style={{fontSize:13,color:'#6b7280',margin:0}}>{i.desc}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='toolbox' && (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            {date:'2026-06-04',shift:'Day',topic:'Working at Heights & Fall Prevention',supervisor:'Kenneth Matombo',attendees:12},
+            {date:'2026-06-03',shift:'Night',topic:'Chemical Handling & Spill Response',supervisor:'Thomas Chikore',attendees:9},
+            {date:'2026-06-02',shift:'Day',topic:'Lockout/Tagout Procedures',supervisor:'Kenneth Matombo',attendees:14}
+          ].map(t=>(
+            <div key={t.date+t.shift} className="card">
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0}}>{t.topic}</p>
+                <Badge color='navy'>{t.shift}</Badge>
+              </div>
+              <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{t.date} · {t.supervisor} · {t.attendees} attendees</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='permits' && (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            {name:'MMSD Mining Block Permit',authority:'MMSD',number:'MIN/2024/0847',expiry:'2026-12-31',days:210},
+            {name:'EMA Environmental Certificate',authority:'EMA',number:'EMA/ZW/2024/1122',expiry:'2026-09-15',days:103},
+            {name:'ZINWA Water Rights',authority:'ZINWA',number:'ZW/WR/2025/0033',expiry:'2026-07-01',days:27}
+          ].map(p=>(
+            <div key={p.number} className="card">
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8}}>
+                <div>
+                  <p style={{fontWeight:700,color:'#1B2A4A',fontSize:14,margin:0}}>{p.name}</p>
+                  <p style={{fontSize:12,color:'#9ca3af',margin:0}}>{p.authority} · {p.number}</p>
+                  <p style={{fontSize:12,color:'#6b7280',marginTop:4}}>Expires: {p.expiry}</p>
+                </div>
+                <Badge color={p.days<30?'amber':'green'}>{p.days<30?`${p.days}d left`:'Valid'}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='emergency' && (
+        <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:16,padding:16}}>
+          <p style={{fontWeight:700,color:'#dc2626',fontSize:12,textTransform:'uppercase',letterSpacing:'.06em',margin:'0 0 16px'}}>Emergency Contacts</p>
+          {[
+            {label:'MEDEVAC',number:'+263 4 123 456'},
+            {label:'Nearest Hospital (Kanyemba)',number:'+263 58 234 567'},
+            {label:'Mine Manager (Piyo)',number:'+263 77 xxx xxxx'},
+            {label:'HSE Officer (Thomas)',number:'+263 77 xxx xxxx'}
+          ].map(c=>(
+            <div key={c.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'1px solid #fecaca'}}>
+              <div>
+                <p style={{fontWeight:700,color:'#1B2A4A',fontSize:13,margin:0}}>{c.label}</p>
+                <p style={{fontWeight:700,color:'#dc2626',fontSize:16,margin:'2px 0 0'}}>{c.number}</p>
+              </div>
+              <a href={`tel:${c.number.replace(/\s/g,'')}`} style={{width:44,height:44,background:'#dc2626',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',textDecoration:'none'}}>
+                <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.29 6.29l1.02-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── GOLD ROOM ──────────────────────────────────────────────────────────────
+function GoldRoom({user}) {
+  const allowed = ['Owner','Mine Manager','Metallurgist'].includes(user?.role)
+  const [tab, setTab] = useState('cleanup')
+  const [submitted, setSubmitted] = useState(false)
+  const [form, setForm] = useState({date:new Date().toISOString().slice(0,10),shift:'Day',cleanedBy:'Tirika Faresi',witness1:'Piyo Chiradza',witness2:'Earl',weight:''})
+
+  if (!allowed) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:40,textAlign:'center',gap:16}}>
+      <div style={{width:80,height:80,background:'#fee2e2',borderRadius:40,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <svg width="36" height="36" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <h2 style={{color:'#1B2A4A',fontWeight:800,fontSize:22,margin:0}}>Access Restricted</h2>
+      <p style={{color:'#9ca3af',fontSize:14}}>Gold Room is restricted to Owner, Mine Manager, and Metallurgist only.</p>
+      <p style={{fontSize:12,color:'#9ca3af'}}>You are logged in as: <strong>{user?.role}</strong></p>
+    </div>
+  )
+
+  if (submitted) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,textAlign:'center',gap:16}}>
+      <div style={{width:80,height:80,background:'#dcfce7',borderRadius:40,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Icons.CheckCircle/>
+      </div>
+      <h2 style={{color:'#1B2A4A',fontSize:22,fontWeight:800,margin:0}}>Record Submitted & Locked</h2>
+      <p style={{color:'#9ca3af',fontSize:14}}>This record has been permanently locked. It cannot be edited.</p>
+      <button className="btn btn-gold" onClick={()=>setSubmitted(false)}>New Entry</button>
+    </div>
+  )
+
+  return (
+    <div style={{padding:16,paddingBottom:80}}>
+      <div style={{background:'#1B2A4A',borderRadius:20,padding:'18px 20px',color:'#fff',marginBottom:16,display:'flex',alignItems:'center',gap:16}}>
+        <div style={{width:50,height:50,background:'#D4A017',borderRadius:14,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+          <Icons.Lock/>
+        </div>
+        <div>
+          <h1 style={{color:'#fff',fontWeight:800,fontSize:20,margin:0}}>Gold Room</h1>
+          <p style={{color:'#D4A017',fontSize:12,fontWeight:700,margin:0}}>RESTRICTED — {user?.role}</p>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
+        <div className="card" style={{textAlign:'center'}}><p style={{fontSize:10,color:'#9ca3af',margin:'0 0 4px'}}>Clean-Ups</p><p style={{fontSize:22,fontWeight:800,color:'#1B2A4A',margin:0}}>12</p></div>
+        <div className="card" style={{textAlign:'center'}}><p style={{fontSize:10,color:'#9ca3af',margin:'0 0 4px'}}>Pours</p><p style={{fontSize:22,fontWeight:800,color:'#1B2A4A',margin:0}}>4</p></div>
+        <div className="card" style={{textAlign:'center'}}><p style={{fontSize:10,color:'#9ca3af',margin:'0 0 4px'}}>Total Gold</p><p style={{fontSize:18,fontWeight:800,color:'#D4A017',margin:0}}>58.4g</p></div>
+      </div>
+
+      <div style={{display:'flex',gap:6,background:'#f3f4f6',borderRadius:14,padding:4,marginBottom:16}}>
+        {['cleanup','pour','custody'].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            flex:1,padding:'8px 8px',borderRadius:10,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',
+            background:tab===t?'#1B2A4A':'transparent',color:tab===t?'#fff':'#6b7280',transition:'all .15s'
+          }}>{t==='cleanup'?'Clean-Up':t==='pour'?'Pour Record':'Custody'}</button>
+        ))}
+      </div>
+
+      {tab==='cleanup' && (
+        <div className="card" style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div style={{background:'#fffbeb',border:'1px solid #fcd34d',borderRadius:10,padding:'8px 12px'}}>
+            <p style={{fontSize:12,fontWeight:700,color:'#92400e',margin:0}}>All fields mandatory. No drafts. Record locks on submission.</p>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div><label className="form-label">Date</label><input type="date" className="form-input" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
+            <div><label className="form-label">Shift</label>
+              <select className="form-select" value={form.shift} onChange={e=>setForm(p=>({...p,shift:e.target.value}))}>
+                <option>Day</option><option>Night</option>
+              </select>
+            </div>
+          </div>
+          {[
+            {f:'cleanedBy',label:'Sluice Cleaned By'},
+            {f:'witness1',label:'Witness 1 ★ Required'},
+            {f:'witness2',label:'Witness 2 ★ Required'}
+          ].map(({f,label})=>(
+            <div key={f}>
+              <label className="form-label">{label}</label>
+              <select className="form-select" value={form[f]} onChange={e=>setForm(p=>({...p,[f]:e.target.value}))}>
+                {['Piyo Chiradza','Tirika Faresi','Earl','Kenneth Matombo'].map(n=><option key={n}>{n}</option>)}
+              </select>
+            </div>
+          ))}
+          <div>
+            <label className="form-label">Concentrate Weight (kg)</label>
+            <input type="number" className="form-input" placeholder="0.000" step="0.001" value={form.weight} onChange={e=>setForm(p=>({...p,weight:e.target.value}))} required/>
+          </div>
+          <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,padding:'8px 12px'}}>
+            <p style={{fontSize:12,fontWeight:600,color:'#991b1b',margin:0}}>⚠ This record will be permanently locked on submission.</p>
+          </div>
+          <button className="btn btn-gold" style={{width:'100%',fontSize:15,fontWeight:800}} onClick={()=>setSubmitted(true)}>
+            🔒 Submit &amp; Lock Record
+          </button>
+        </div>
+      )}
+
+      {tab!=='cleanup' && (
+        <div className="card" style={{textAlign:'center',padding:32,color:'#9ca3af'}}>
+          <Icons.Lock/>
+          <p style={{marginTop:12,fontSize:14}}>Select a record type above to log a new entry.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── ROOT APP ───────────────────────────────────────────────────────────────
+function App() {
+  const [user, setUser] = useState(null)
+  const [screen, setScreen] = useState('dashboard')
+  const [si91, setSI91] = useState(false)
+  const [isOnline] = useState(navigator.onLine)
+
+  if (!user) return React.createElement(Login, {onLogin: u => setUser(u)})
+
+  const screens = {
+    dashboard:   React.createElement(Dashboard, {user, si91, setSI91, setScreen}),
+    shift:       React.createElement(Shift),
+    hr:          React.createElement(HR),
+    operations:  React.createElement(Operations),
+    compliance:  React.createElement(Compliance),
+    goldroom:    React.createElement(GoldRoom, {user})
+  }
+
+  return (
+    <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',position:'relative',background:'#F8F9FA'}}>
+      {React.createElement(Header, {user, isOnline, onLogout: ()=>setUser(null)})}
+      <div style={{overflowY:'auto',maxHeight:'calc(100vh - 60px)'}}>
+        {screens[screen] || screens.dashboard}
+      </div>
+      {React.createElement(BottomNav, {screen, setScreen})}
+    </div>
+  )
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App))
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+Replace this folder with:
+- icon-192.png (192x192px)
+- icon-512.png (512x512px)
+
+Both should use the navy (#1B2A4A) background with the gold (#D4A017) letter M.
+These are required for PWA installation on Android/iOS home screens.

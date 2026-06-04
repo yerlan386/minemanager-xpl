@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(Get-Command python3, py, python3.exe, \"C:\\\\Windows\\\\py.exe\" -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
