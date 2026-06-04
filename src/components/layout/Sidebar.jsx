@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Pickaxe, Users, Wrench, ClipboardList, Lock, LogOut } from 'lucide-react'
+import { Home, Pickaxe, Users, Wrench, ClipboardList, Lock, LogOut, UserCog } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
@@ -60,7 +60,18 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="px-3 py-4 border-t border-white/10">
+      <div className="px-3 py-4 border-t border-white/10 space-y-1">
+        {user?.role === 'Owner' && (
+          <NavLink to="/admin/users"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                isActive ? 'bg-gold text-navy' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              }`
+            }>
+            <UserCog size={20} />
+            User Management
+          </NavLink>
+        )}
         <button
           onClick={logout}
           className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"

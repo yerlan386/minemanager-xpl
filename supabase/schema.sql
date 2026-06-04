@@ -47,7 +47,7 @@ create table user_profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   name        text not null,
   role        text not null check (role in (
-                'Owner','Mine Manager','Shift Supervisor',
+                'Owner','Mine Manager','Camp Manager','Shift Supervisor',
                 'Metallurgist','HSE Officer','HR/Admin')),
   employee_id text,
   created_at  timestamptz default now()

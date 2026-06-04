@@ -8,6 +8,7 @@ import HRPage from './pages/hr/HRPage'
 import OperationsPage from './pages/operations/OperationsPage'
 import CompliancePage from './pages/compliance/CompliancePage'
 import GoldRoom from './pages/goldroom/GoldRoom'
+import UserManagement from './pages/admin/UserManagement'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route path="operations/*" element={<OperationsPage />} />
         <Route path="compliance/*" element={<CompliancePage />} />
         <Route path="goldroom" element={<GoldRoom />} />
+        <Route path="admin/users" element={<UserManagement />} />
       </Route>
     </Routes>
   )

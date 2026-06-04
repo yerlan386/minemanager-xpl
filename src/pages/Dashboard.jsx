@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([])
 
   const goldAccess = ['Owner', 'Mine Manager', 'Metallurgist'].includes(user?.role)
+  const canManageUsers = user?.role === 'Owner'
   const currentHour = new Date().getHours()
   const activeShift = currentHour >= 6 && currentHour < 18 ? 'Day Shift' : 'Night Shift'
 

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, ChevronRight, X } from 'lucide-react'
+import { Plus, Search, ChevronRight, Lock } from 'lucide-react'
 import { useLocalData } from '../../hooks/useLocalData'
+import { useAuth } from '../../context/AuthContext'
 import { Input, Select, NumberInput } from '../../components/ui/FormField'
 import { StatusBadge, Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
-import { Button } from '../../components/ui/Button'
 import { EMPLOYEES, ROLES, DEPARTMENTS } from '../../data/employees'
 import { EMPLOYMENT_TYPES, EMPLOYEE_STATUSES } from '../../data/constants'
 import { format } from 'date-fns'
@@ -24,6 +24,8 @@ export default function EmployeeRegister() {
       }))))
     }
   }, [])
+  const { user } = useAuth()
+  const canOnboard = ['Owner', 'Mine Manager', 'Camp Manager'].includes(user?.role)
   const { rows: employees, upsert, reload } = useLocalData('employees')
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
@@ -57,9 +59,15 @@ export default function EmployeeRegister() {
           <input className="form-input pl-9 py-2.5 text-sm" placeholder="Search employees…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <button onClick={openNew} className="btn-primary px-4 py-2.5 gap-1.5 text-sm">
-          <Plus size={16} /> Add
-        </button>
+        {canOnboard ? (
+          <button onClick={openNew} className="btn-primary px-4 py-2.5 gap-1.5 text-sm">
+            <Plus size={16} /> Add
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 text-gray-400 text-xs font-semibold">
+            <Lock size={14} /> Mine/Camp Mgr only
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

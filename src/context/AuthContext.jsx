@@ -52,7 +52,10 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     if (DEMO_MODE) {
-      const found = DEMO_USERS.find(u => u.email === email && u.password === password)
+      // Check built-in demo users + any users created via User Management
+      const dynamicUsers = JSON.parse(localStorage.getItem('mm_app_users') || '[]')
+      const allUsers = [...DEMO_USERS, ...dynamicUsers]
+      const found = allUsers.find(u => u.email === email && u.password === password)
       if (!found) return { error: { message: 'Invalid email or password' } }
       const session = { ...found, password: undefined }
       localStorage.setItem('mm_session', JSON.stringify(session))
@@ -93,6 +96,7 @@ export function useHasAccess(permission) {
   if (user.role === 'Owner') return true
   const ROLE_PERMISSIONS = {
     'Mine Manager':     ['dashboard','shift','production','hr','operations','compliance','goldroom'],
+    'Camp Manager':     ['dashboard','shift','production','hr','operations','compliance'],
     'Shift Supervisor': ['dashboard','shift','production','hr_attendance','maintenance_faults','hse','si91'],
     'Metallurgist':     ['dashboard','shift_view','production_view','goldroom'],
     'HSE Officer':      ['dashboard','shift_view','hse','regulatory','reports_hse'],

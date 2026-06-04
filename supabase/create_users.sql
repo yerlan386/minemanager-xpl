@@ -1,68 +1,79 @@
 -- ============================================================
 -- MineManager XPL — Create User Accounts
--- ============================================================
--- Run this AFTER schema.sql and seed.sql
--- IMPORTANT: Replace the passwords below with real secure passwords
---            before running in production.
+-- Run AFTER schema.sql and seed.sql
 --
--- These insert directly into auth.users (Supabase internal table).
--- Alternatively, create users via Dashboard → Authentication → Users
--- then run only the user_profiles inserts below.
+-- IMPORTANT: Direct inserts into auth.users are blocked in Supabase.
+-- Use the Dashboard method below instead.
 -- ============================================================
 
--- Option A: Create via SQL (all at once)
--- NOTE: Supabase may restrict direct auth.users inserts.
--- If this fails, use Option B (Dashboard) below.
-
-do $$
-declare
-  uid_earl      uuid := gen_random_uuid();
-  uid_piyo      uuid := gen_random_uuid();
-  uid_kenneth   uuid := gen_random_uuid();
-  uid_johnson   uuid := gen_random_uuid();
-  uid_thomas    uuid := gen_random_uuid();
-  uid_tirika    uuid := gen_random_uuid();
-  uid_cloudias  uuid := gen_random_uuid();
-begin
-
-  -- Insert into auth.users
-  insert into auth.users (id, email, encrypted_password, email_confirmed_at, role, aud, created_at, updated_at)
-  values
-    (uid_earl,     'earl@celestium.zw',     crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now()),
-    (uid_piyo,     'piyo@celestium.zw',     crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now()),
-    (uid_kenneth,  'kenneth@celestium.zw',  crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now()),
-    (uid_johnson,  'johnson@celestium.zw',  crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now()),
-    (uid_thomas,   'thomas@celestium.zw',   crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now()),
-    (uid_tirika,   'tirika@celestium.zw',   crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now()),
-    (uid_cloudias, 'cloudias@celestium.zw', crypt('ChangeMe123!', gen_salt('bf')), now(), 'authenticated', 'authenticated', now(), now())
-  on conflict (email) do nothing;
-
-  -- Create matching user profiles
-  insert into user_profiles (id, name, role, employee_id)
-  values
-    (uid_earl,     'Earl',           'Owner',            'e001'),
-    (uid_piyo,     'Piyo Chiradza',  'Mine Manager',     'e002'),
-    (uid_kenneth,  'Kenneth Matombo','Shift Supervisor',  'e003'),
-    (uid_johnson,  'Johnson',        'Shift Supervisor',  'e004'),
-    (uid_thomas,   'Thomas Chikore', 'HSE Officer',       'e005'),
-    (uid_tirika,   'Tirika Faresi',  'Metallurgist',      'e006'),
-    (uid_cloudias, 'Cloudias Musoni','HR/Admin',          'e014')
-  on conflict (id) do nothing;
-
-end $$;
-
+-- ============================================================
+-- Step 1: Create users via Dashboard
+-- Go to: Authentication → Users → Add User → Create new user
+-- Create one for each person below:
+--
+--  Email                      | Temp Password       | Name
+--  ---------------------------|---------------------|----------------
+--  yerlan@celestium.zw        | MineManager2026!    | Yerlan
+--  moyo@celestium.zw          | MineManager2026!    | Moyo
+--  taras@celestium.zw         | MineManager2026!    | Taras
+--  piyo@celestium.zw          | MineManager2026!    | Piyo Chiradza
+--  kenneth@celestium.zw       | MineManager2026!    | Kenneth Matombo
+--  sergey@celestium.zw        | MineManager2026!    | Sergey
+-- ============================================================
 
 -- ============================================================
--- Option B: If Option A fails, create users via Dashboard then
--- run only this part (replace UUIDs with actual ones from auth.users table)
+-- Step 2: After creating all 6 users in Dashboard, run this
+-- SQL to link them to their roles. It auto-detects the UUIDs
+-- so you don't need to copy anything manually.
 -- ============================================================
-/*
-insert into user_profiles (id, name, role, employee_id) values
-  ('PASTE-UUID-HERE', 'Earl',           'Owner',            'e001'),
-  ('PASTE-UUID-HERE', 'Piyo Chiradza',  'Mine Manager',     'e002'),
-  ('PASTE-UUID-HERE', 'Kenneth Matombo','Shift Supervisor',  'e003'),
-  ('PASTE-UUID-HERE', 'Johnson',        'Shift Supervisor',  'e004'),
-  ('PASTE-UUID-HERE', 'Thomas Chikore', 'HSE Officer',       'e005'),
-  ('PASTE-UUID-HERE', 'Tirika Faresi',  'Metallurgist',      'e006'),
-  ('PASTE-UUID-HERE', 'Cloudias Musoni','HR/Admin',          'e014');
-*/
+
+insert into user_profiles (id, name, role, employee_id)
+select
+  id,
+  case email
+    when 'yerlan@celestium.zw'   then 'Yerlan'
+    when 'moyo@celestium.zw'     then 'Moyo'
+    when 'taras@celestium.zw'    then 'Taras'
+    when 'piyo@celestium.zw'     then 'Piyo Chiradza'
+    when 'kenneth@celestium.zw'  then 'Kenneth Matombo'
+    when 'sergey@celestium.zw'   then 'Sergey'
+  end as name,
+  case email
+    when 'yerlan@celestium.zw'   then 'Owner'
+    when 'moyo@celestium.zw'     then 'Owner'
+    when 'taras@celestium.zw'    then 'Owner'
+    when 'piyo@celestium.zw'     then 'Mine Manager'
+    when 'kenneth@celestium.zw'  then 'Camp Manager'
+    when 'sergey@celestium.zw'   then 'Metallurgist'
+  end as role,
+  case email
+    when 'yerlan@celestium.zw'   then 'e001'
+    when 'moyo@celestium.zw'     then 'e025'
+    when 'taras@celestium.zw'    then 'e026'
+    when 'piyo@celestium.zw'     then 'e002'
+    when 'kenneth@celestium.zw'  then 'e003'
+    when 'sergey@celestium.zw'   then 'e006'
+  end as employee_id
+from auth.users
+where email in (
+  'yerlan@celestium.zw', 'moyo@celestium.zw', 'taras@celestium.zw',
+  'piyo@celestium.zw',   'kenneth@celestium.zw', 'sergey@celestium.zw'
+)
+on conflict (id) do update set
+  name        = excluded.name,
+  role        = excluded.role,
+  employee_id = excluded.employee_id;
+
+-- ============================================================
+-- Step 3: Also update the employees table with the new names
+-- ============================================================
+update employees set name = 'Yerlan'  where id = 'e001';
+update employees set name = 'Sergey', role = 'Metallurgist' where id = 'e006';
+update employees set role = 'Camp Manager' where id = 'e003';
+
+-- Add new employees not in original seed
+insert into employees (id, name, role, department, employment_type, monthly_rate, status, start_date)
+values
+  ('e025', 'Moyo',  'Owner', 'Production Leadership', 'Monthly', 0, 'Active', '2024-01-01'),
+  ('e026', 'Taras', 'Owner', 'Production Leadership', 'Monthly', 0, 'Active', '2024-01-01')
+on conflict (id) do nothing;
