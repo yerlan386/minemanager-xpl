@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#1B2A4A"/>
+  <!-- First M — Gold -->
+  <path d="M32 420 L32 92 L138 268 L244 92 L244 420 L204 420 L204 224 L138 324 L72 224 L72 420 Z" fill="#D4A017"/>
+  <!-- Second M — White -->
+  <path d="M236 420 L236 92 L342 268 L448 92 L448 420 L408 420 L408 224 L342 324 L276 224 L276 420 Z" fill="#ffffff"/>
+  <!-- XPL pill -->
+  <rect x="336" y="396" width="144" height="74" rx="18" fill="#D4A017"/>
+  <text x="408" y="446" font-family="Arial Black, sans-serif" font-size="42" font-weight="900" fill="#1B2A4A" text-anchor="middle">XPL</text>
+</svg>

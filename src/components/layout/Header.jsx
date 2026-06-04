@@ -11,13 +11,8 @@ export function Header({ title }) {
   return (
     <header className="bg-navy text-white px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-lg pt-safe">
       <div className="flex items-center gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-gold font-bold text-lg leading-tight">MineManager</span>
-            <span className="text-white/60 text-xs font-medium bg-white/10 px-1.5 py-0.5 rounded">XPL</span>
-          </div>
-          {title && <p className="text-xs text-white/60 leading-none">{title}</p>}
-        </div>
+        <img src="/logo.svg" alt="MineManager XPL" className="h-8 w-auto" />
+        {title && <p className="text-xs text-white/60 leading-none hidden sm:block">{title}</p>}
       </div>
 
       <div className="flex items-center gap-2">

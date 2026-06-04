@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" fill="none">
+  <!-- First M — Gold -->
+  <path d="M10 130 L10 30 L55 100 L100 30 L100 130 L82 130 L82 68 L55 112 L28 68 L28 130 Z" fill="#D4A017"/>
+  <!-- Second M — Navy (overlaps slightly) -->
+  <path d="M88 130 L88 30 L133 100 L178 30 L178 130 L160 130 L160 68 L133 112 L106 68 L106 130 Z" fill="#1B2A4A"/>
+  <!-- XPL badge -->
+  <rect x="186" y="96" width="44" height="22" rx="5" fill="#D4A017"/>
+  <text x="208" y="112" font-family="Arial Black, Arial, sans-serif" font-size="13" font-weight="900" fill="#1B2A4A" text-anchor="middle">XPL</text>
+  <!-- MineManager text -->
+  <text x="10" y="154" font-family="Arial Black, Arial, sans-serif" font-size="17" font-weight="900" fill="#1B2A4A" letter-spacing="1">MineManager</text>
+</svg>

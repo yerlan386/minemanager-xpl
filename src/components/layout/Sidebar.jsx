@@ -17,8 +17,8 @@ export function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-navy text-white h-screen sticky top-0 shrink-0">
       <div className="px-5 py-5 border-b border-white/10">
-        <div className="text-gold font-bold text-xl">MineManager</div>
-        <div className="text-white/50 text-xs font-medium">XPL — Celestium Corporate Ltd</div>
+        <img src="/logo.svg" alt="MineManager XPL" className="h-10 w-auto mb-1" />
+        <div className="text-white/50 text-xs font-medium mt-1">Celestium Corporate Ltd</div>
       </div>
 
       <div className="px-3 py-3 border-b border-white/10">

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, HardHat } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { DEMO_USERS } from '../../data/employees'
 
 export default function Login() {
@@ -31,12 +31,10 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gold rounded-2xl mb-4">
-            <HardHat size={32} className="text-navy" />
+          <div className="inline-block bg-white/10 rounded-3xl p-5 mb-4 backdrop-blur-sm">
+            <img src="/logo.svg" alt="MineManager XPL" className="h-16 w-auto" />
           </div>
-          <h1 className="text-3xl font-bold text-white">MineManager</h1>
-          <p className="text-gold font-semibold text-lg">XPL</p>
-          <p className="text-white/50 text-sm mt-1">Celestium Corporate Ltd · Dande, Zimbabwe</p>
+          <p className="text-white/50 text-sm mt-3">Celestium Corporate Ltd · Dande, Zimbabwe</p>
         </div>
 
         {/* Form */}
