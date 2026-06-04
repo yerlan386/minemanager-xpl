@@ -56,7 +56,13 @@ export default function PayrollRegister() {
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
 
   function openNew(emp) {
-    setForm({ ...EMPTY, employee_id: emp?.id || '', monthly_rate: String(emp?.monthlyRate || '') })
+    // If a record already exists for this employee + current filter period, load it
+    const existing = emp ? filtered.find(r => r.employee_id === emp.id) : null
+    if (existing) {
+      setForm({ ...EMPTY, ...existing })
+    } else {
+      setForm({ ...EMPTY, employee_id: emp?.id || '', monthly_rate: String(emp?.monthlyRate || '') })
+    }
     setModal(true)
   }
 

@@ -10,6 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 const EMPTY = {
   date: format(new Date(), 'yyyy-MM-dd'),
   shift: 'Day',
+  ore_processed: '',
   plant_runtime_hrs: '',
   sluice_yield_g: '',
   concentrator_yield_g: '',
@@ -132,6 +133,8 @@ export default function ProductionLog({ inline }) {
               <Input label="Date" type="date" value={form.date} onChange={set('date')} required />
               <Select label="Shift" value={form.shift} onChange={set('shift')} options={SHIFT_TYPES} />
             </div>
+            <NumberInput label="Ore Processed" suffix="t" value={form.ore_processed}
+              onChange={set('ore_processed')} placeholder="0.0" step="0.1" min="0" />
             <NumberInput label="Plant Run-Time" suffix="hrs" value={form.plant_runtime_hrs}
               onChange={set('plant_runtime_hrs')} placeholder="0" step="0.1"
               hint={parseFloat(form.plant_runtime_hrs) < 21 && form.plant_runtime_hrs ? '⚠ Target is 21 hrs' : undefined} />

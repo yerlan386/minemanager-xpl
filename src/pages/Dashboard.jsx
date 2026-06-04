@@ -50,12 +50,13 @@ export default function Dashboard() {
       const { data: si91 } = await dbSelect('si91_log', { date: today })
       if (si91?.length > 0) setSi91Confirmed(true)
 
-      // Load today's production KPIs
+      // Tonnes comes from handovers; gold + runtime come from production logs
+      const { data: todayHandovers } = await dbSelect('shift_handovers', { date: today })
       const { data: prod } = await dbSelect('production_logs', { date: today })
-      if (prod?.length > 0) {
-        const totTonnes = prod.reduce((s, r) => s + (parseFloat(r.ore_processed) || 0), 0)
-        const totGold = prod.reduce((s, r) => s + (parseFloat(r.total_gold_g) || 0), 0)
-        const totRuntime = prod.reduce((s, r) => s + (parseFloat(r.plant_runtime_hrs) || 0), 0)
+      const totTonnes = (todayHandovers || []).reduce((s, r) => s + (parseFloat(r.ore_processed) || 0), 0)
+      const totGold   = (prod || []).reduce((s, r) => s + (parseFloat(r.total_gold_g) || 0), 0)
+      const totRuntime= (prod || []).reduce((s, r) => s + (parseFloat(r.plant_runtime_hrs) || 0), 0)
+      if (totTonnes > 0 || totGold > 0 || totRuntime > 0) {
         setKpis({ tonnes: totTonnes.toFixed(1), goldG: totGold.toFixed(2), runtime: totRuntime.toFixed(1) })
       }
 
@@ -187,7 +188,7 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          <Link to="/compliance/hse/incident/new" className="card flex items-center gap-3 hover:border-red-300 hover:shadow-md transition-all border-2 border-transparent">
+          <Link to="/compliance" className="card flex items-center gap-3 hover:border-red-300 hover:shadow-md transition-all border-2 border-transparent">
             <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
               <AlertTriangle size={20} className="text-red-600" />
             </div>
@@ -197,7 +198,7 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          <Link to="/operations/procurement/new" className="card flex items-center gap-3 hover:border-navy hover:shadow-md transition-all border-2 border-transparent">
+          <Link to="/operations/procurement" className="card flex items-center gap-3 hover:border-navy hover:shadow-md transition-all border-2 border-transparent">
             <div className="w-10 h-10 rounded-xl bg-gold/20 flex items-center justify-center">
               <ShoppingCart size={20} className="text-gold-dark" />
             </div>

@@ -7,20 +7,21 @@ import AttendanceLog from './AttendanceLog'
 import DisciplinaryLog from './DisciplinaryLog'
 import { useAuth } from '../../context/AuthContext'
 
-const TABS = [
-  { to: '/hr',              label: 'Employees', exact: true },
-  { to: '/hr/payroll',      label: 'Payroll' },
-  { to: '/hr/leave',        label: 'Leave' },
-  { to: '/hr/roster',       label: 'Roster' },
-  { to: '/hr/attendance',   label: 'Attendance' },
-  { to: '/hr/disciplinary', label: 'HR Notes' }
+const ALL_TABS = [
+  { to: '/hr',              label: 'Employees', exact: true,  roles: ['Owner','Mine Manager','HR/Admin'] },
+  { to: '/hr/payroll',      label: 'Payroll',                 roles: ['Owner','Mine Manager','HR/Admin'] },
+  { to: '/hr/leave',        label: 'Leave',                   roles: ['Owner','Mine Manager','HR/Admin'] },
+  { to: '/hr/roster',       label: 'Roster',                  roles: ['Owner','Mine Manager','HR/Admin','Shift Supervisor','Metallurgist','HSE Officer'] },
+  { to: '/hr/attendance',   label: 'Attendance',              roles: ['Owner','Mine Manager','HR/Admin','Shift Supervisor','Metallurgist','HSE Officer'] },
+  { to: '/hr/disciplinary', label: 'HR Notes',                roles: ['Owner','Mine Manager','HR/Admin'] }
 ]
 
-function HRNav() {
+function HRNav({ userRole }) {
   const loc = useLocation()
+  const tabs = ALL_TABS.filter(t => t.roles.includes(userRole))
   return (
     <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-      {TABS.map(t => {
+      {tabs.map(t => {
         const active = t.exact ? loc.pathname === t.to : loc.pathname.startsWith(t.to)
         return (
           <Link key={t.to} to={t.to}
@@ -37,16 +38,20 @@ function HRNav() {
 
 export default function HRPage() {
   const { user } = useAuth()
-  const hrAccess = ['Owner', 'Mine Manager', 'HR/Admin'].includes(user?.role)
+  const LIMITED_ROLES = ['Shift Supervisor', 'Metallurgist', 'HSE Officer']
+  const hasAnyAccess = ['Owner', 'Mine Manager', 'HR/Admin', ...LIMITED_ROLES].includes(user?.role)
 
-  if (!hrAccess && user?.role !== 'Shift Supervisor') {
+  if (!hasAnyAccess) {
     return <div className="text-center py-16 text-gray-500">Access restricted.</div>
   }
+
+  // Limited roles land on Attendance by default (their only permitted tab)
+  const defaultPath = LIMITED_ROLES.includes(user?.role) ? '/hr/attendance' : '/hr'
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-navy">HR</h1>
-      <HRNav />
+      <HRNav userRole={user?.role} />
       <Routes>
         <Route index element={<EmployeeRegister />} />
         <Route path="payroll" element={<PayrollRegister />} />

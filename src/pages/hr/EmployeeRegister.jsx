@@ -9,16 +9,6 @@ import { EMPLOYEES, ROLES, DEPARTMENTS } from '../../data/employees'
 import { EMPLOYMENT_TYPES, EMPLOYEE_STATUSES } from '../../data/constants'
 import { format } from 'date-fns'
 
-// Seed employees into storage on first load
-function seedEmployees() {
-  const key = 'mm_employees'
-  if (!localStorage.getItem(key)) {
-    localStorage.setItem(key, JSON.stringify(EMPLOYEES.map(e => ({
-      ...e, created_at: new Date().toISOString()
-    }))))
-  }
-}
-
 const EMPTY = {
   name: '', role: '', department: '', reportsTo: '',
   employmentType: 'Monthly', startDate: format(new Date(), 'yyyy-MM-dd'),
@@ -26,7 +16,14 @@ const EMPTY = {
 }
 
 export default function EmployeeRegister() {
-  seedEmployees()
+  useEffect(() => {
+    const key = 'mm_employees'
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, JSON.stringify(EMPLOYEES.map(e => ({
+        ...e, created_at: new Date().toISOString()
+      }))))
+    }
+  }, [])
   const { rows: employees, upsert, reload } = useLocalData('employees')
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)

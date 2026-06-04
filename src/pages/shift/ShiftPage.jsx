@@ -8,10 +8,13 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import ShiftHandover from './ShiftHandover'
 import ProductionLog from './ProductionLog'
 import { Pickaxe } from 'lucide-react'
+import { EMPLOYEES } from '../../data/employees'
+
+const empName = id => EMPLOYEES.find(e => e.id === id)?.name || id
 
 function HandoverCard({ h }) {
-  const outEmp = h.outgoing_supervisor_name || h.outgoing_supervisor_id
-  const inEmp  = h.incoming_supervisor_name || h.incoming_supervisor_id
+  const outEmp = empName(h.outgoing_supervisor_id)
+  const inEmp  = empName(h.incoming_supervisor_id)
   return (
     <Link to={`/shift/handover/${h.id}`}
       className="card flex items-center justify-between gap-4 hover:shadow-md transition-shadow border border-gray-100">
