@@ -5,8 +5,20 @@ import { DEMO_USERS } from '../data/employees'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]     = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // Fetch the user_profile row to get name + role
+  async function fetchProfile(authUser) {
+    if (!authUser) return null
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single()
+    if (error || !data) return { ...authUser, name: authUser.email, role: 'Shift Supervisor' }
+    return { ...authUser, name: data.name, role: data.role, employeeId: data.employee_id }
+  }
 
   useEffect(() => {
     if (DEMO_MODE) {
@@ -15,13 +27,26 @@ export function AuthProvider({ children }) {
       setLoading(false)
       return
     }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+
+    // Check existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user)
+        setUser(profile)
+      }
       setLoading(false)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user)
+        setUser(profile)
+      } else {
+        setUser(null)
+      }
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
@@ -34,8 +59,12 @@ export function AuthProvider({ children }) {
       setUser(session)
       return { error: null }
     }
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    return { data, error }
+    if (error) return { error }
+
+    // Profile is fetched by the onAuthStateChange listener
+    return { error: null }
   }
 
   async function logout() {
@@ -45,6 +74,7 @@ export function AuthProvider({ children }) {
       return
     }
     await supabase.auth.signOut()
+    setUser(null)
   }
 
   const value = { user, loading, login, logout, isDemo: DEMO_MODE }
@@ -62,11 +92,11 @@ export function useHasAccess(permission) {
   if (!user) return false
   if (user.role === 'Owner') return true
   const ROLE_PERMISSIONS = {
-    'Mine Manager':    ['dashboard','shift','production','hr','operations','compliance','goldroom'],
-    'Shift Supervisor':['dashboard','shift','production','hr_attendance','maintenance_faults','hse','si91'],
-    'Metallurgist':    ['dashboard','shift_view','production_view','goldroom'],
-    'HSE Officer':     ['dashboard','shift_view','hse','regulatory','reports_hse'],
-    'HR/Admin':        ['dashboard','hr']
+    'Mine Manager':     ['dashboard','shift','production','hr','operations','compliance','goldroom'],
+    'Shift Supervisor': ['dashboard','shift','production','hr_attendance','maintenance_faults','hse','si91'],
+    'Metallurgist':     ['dashboard','shift_view','production_view','goldroom'],
+    'HSE Officer':      ['dashboard','shift_view','hse','regulatory','reports_hse'],
+    'HR/Admin':         ['dashboard','hr']
   }
   return ROLE_PERMISSIONS[user.role]?.includes(permission) ?? false
 }
