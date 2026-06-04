@@ -66,7 +66,11 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error }
 
-    // Profile is fetched by the onAuthStateChange listener
+    // Set user immediately — don't wait for onAuthStateChange (avoids race condition)
+    if (data?.user) {
+      const profile = await fetchProfile(data.user)
+      setUser(profile)
+    }
     return { error: null }
   }
 
