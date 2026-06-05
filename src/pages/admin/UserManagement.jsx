@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
-import { UserPlus, Shield, CheckCircle2, Eye, EyeOff, Trash2, RefreshCw } from 'lucide-react'
-import { supabase, DEMO_MODE, dbSelect, dbUpsert } from '../../lib/supabase'
+import { UserPlus, Shield, CheckCircle2, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { supabase, DEMO_MODE, dbSelect } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { EMPLOYEES, SYSTEM_ROLES } from '../../data/employees'
-
-// Look up email from static employees list (user_profiles has no email column)
-const staticEmail = empId => EMPLOYEES.find(e => e.id === empId)?.email || ''
 import { Select, Input } from '../../components/ui/FormField'
 import { Badge } from '../../components/ui/Badge'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
+
+// Look up email from static employees list (user_profiles has no email column)
+const staticEmail = empId => EMPLOYEES.find(e => e.id === empId)?.email || ''
 
 const roleColor = {
   'Owner': 'navy', 'Mine Manager': 'blue', 'Camp Manager': 'purple',
@@ -45,9 +45,24 @@ export default function UserManagement() {
       // Load employees from DB
       const { data: emps } = await dbSelect('employees')
       setEmployees(emps?.length ? emps : EMPLOYEES)
-      // Load user profiles (linked to auth users)
-      const { data: profiles } = await dbSelect('user_profiles')
-      setUsers(profiles || [])
+      // Load ALL user profiles via serverless function (bypasses RLS for Owner view)
+      try {
+        const session = await supabase.auth.getSession()
+        const token = session?.data?.session?.access_token
+        const res = await fetch('/api/admin-profiles', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (res.ok) {
+          setUsers(await res.json())
+        } else {
+          // Fallback: own profile only (RLS)
+          const { data: profiles } = await dbSelect('user_profiles')
+          setUsers(profiles || [])
+        }
+      } catch {
+        const { data: profiles } = await dbSelect('user_profiles')
+        setUsers(profiles || [])
+      }
     }
   }
 
