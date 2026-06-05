@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { UserPlus, Shield, CheckCircle2, Eye, EyeOff, RefreshCw } from 'lucide-react'
-import { supabase, DEMO_MODE, dbSelect } from '../../lib/supabase'
+import { supabase, supabaseAdmin, DEMO_MODE, dbSelect } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { EMPLOYEES, SYSTEM_ROLES } from '../../data/employees'
 import { Select, Input } from '../../components/ui/FormField'
@@ -45,24 +45,10 @@ export default function UserManagement() {
       // Load employees from DB
       const { data: emps } = await dbSelect('employees')
       setEmployees(emps?.length ? emps : EMPLOYEES)
-      // Load ALL user profiles via serverless function (bypasses RLS for Owner view)
-      try {
-        const session = await supabase.auth.getSession()
-        const token = session?.data?.session?.access_token
-        const res = await fetch('/api/admin-profiles', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (res.ok) {
-          setUsers(await res.json())
-        } else {
-          // Fallback: own profile only (RLS)
-          const { data: profiles } = await dbSelect('user_profiles')
-          setUsers(profiles || [])
-        }
-      } catch {
-        const { data: profiles } = await dbSelect('user_profiles')
-        setUsers(profiles || [])
-      }
+      // Load ALL user profiles using admin client (bypasses RLS for Owner view)
+      const client = supabaseAdmin || supabase
+      const { data: profiles } = await client.from('user_profiles').select('*')
+      setUsers(profiles || [])
     }
   }
 

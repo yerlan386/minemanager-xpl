@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const SUPABASE_SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
 
 export const DEMO_MODE = !SUPABASE_URL || !SUPABASE_ANON_KEY
 
@@ -11,6 +12,13 @@ export const supabase = DEMO_MODE
       auth: { persistSession: true, autoRefreshToken: true },
       realtime: { params: { eventsPerSecond: 10 } }
     })
+
+// Admin client — bypasses RLS, used only for Owner-level operations
+export const supabaseAdmin = (!DEMO_MODE && SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
+  : null
 
 // Generic upsert helper — falls back to localStorage in demo mode
 export async function dbUpsert(table, data) {
