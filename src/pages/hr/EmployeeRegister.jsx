@@ -32,6 +32,7 @@ export default function EmployeeRegister() {
   const [form, setForm] = useState(EMPTY)
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const filtered = employees.filter(e =>
     e.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -39,14 +40,48 @@ export default function EmployeeRegister() {
   )
 
   function openNew() { setForm(EMPTY); setEditId(null); setModal(true) }
-  function openEdit(emp) { setForm({ ...EMPTY, ...emp }); setEditId(emp.id); setModal(true) }
+  function openEdit(emp) {
+    // Normalise snake_case (Supabase) → camelCase (form) so fields populate correctly
+    setForm({
+      name:           emp.name           || '',
+      role:           emp.role           || '',
+      department:     emp.department     || '',
+      reportsTo:      emp.reportsTo      ?? emp.reports_to        ?? '',
+      employmentType: emp.employmentType ?? emp.employment_type   ?? 'Monthly',
+      startDate:      emp.startDate      ?? emp.start_date        ?? '',
+      endDate:        emp.endDate        ?? emp.end_date          ?? '',
+      monthlyRate:    emp.monthlyRate    ?? emp.monthly_rate      ?? '',
+      status:         emp.status         || 'Active',
+    })
+    setEditId(emp.id)
+    setModal(true)
+  }
   function set(f) { return e => setForm(p => ({ ...p, [f]: e.target.value })) }
 
   async function handleSave() {
+    if (!form.name || !form.role) return
     setSaving(true)
-    await upsert({ ...form, id: editId || crypto.randomUUID() })
-    setSaving(false)
-    setModal(false)
+    setSaveError('')
+    try {
+      // Map camelCase form → snake_case DB columns explicitly (no unknown keys)
+      await upsert({
+        id:               editId || crypto.randomUUID(),
+        name:             form.name,
+        role:             form.role,
+        department:       form.department       || null,
+        reports_to:       form.reportsTo        || null,
+        employment_type:  form.employmentType   || 'Monthly',
+        start_date:       form.startDate        || null,
+        end_date:         form.endDate          || null,
+        monthly_rate:     parseFloat(form.monthlyRate) || 0,
+        status:           form.status           || 'Active',
+      })
+      setModal(false)
+    } catch (err) {
+      setSaveError(err.message || 'Save failed. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const statusColor = { Active: 'green', Inactive: 'gray', Outsourced: 'blue' }
@@ -92,7 +127,7 @@ export default function EmployeeRegister() {
         ))}
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editId ? 'Edit Employee' : 'Add Employee'}>
+      <Modal open={modal} onClose={() => { setModal(false); setSaveError('') }} title={editId ? 'Edit Employee' : 'Add Employee'}>
         <div className="space-y-4">
           <Input label="Full Name" value={form.name} onChange={set('name')} required placeholder="Full name" />
           <Select label="Role" value={form.role} onChange={set('role')} options={ROLES} placeholder="Select role…" required />
@@ -108,9 +143,14 @@ export default function EmployeeRegister() {
             <Input label="End Date" type="date" value={form.endDate} onChange={set('endDate')} />
           </div>
           <NumberInput label="Monthly Rate (USD)" prefix="$" value={form.monthlyRate} onChange={set('monthlyRate')} placeholder="0.00" step="0.01" />
+          {saveError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-700 font-medium">
+              {saveError}
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModal(false)} className="btn-outline flex-1">Cancel</button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
+            <button onClick={() => { setModal(false); setSaveError('') }} className="btn-outline flex-1">Cancel</button>
+            <button onClick={handleSave} disabled={saving || !form.name || !form.role} className="btn-primary flex-1">
               {saving ? 'Saving…' : 'Save'}
             </button>
           </div>

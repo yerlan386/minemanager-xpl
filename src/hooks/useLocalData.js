@@ -16,7 +16,11 @@ export function useLocalData(table, filters = {}) {
 
   async function upsert(record) {
     const newRecord = { id: record.id || crypto.randomUUID(), ...record }
-    await dbUpsert(table, newRecord)
+    const { error } = await dbUpsert(table, newRecord)
+    if (error) {
+      console.error(`[useLocalData] upsert failed on "${table}":`, error.message)
+      throw new Error(error.message)
+    }
     await load()
     return newRecord
   }

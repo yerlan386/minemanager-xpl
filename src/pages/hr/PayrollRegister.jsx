@@ -62,10 +62,24 @@ export default function PayrollRegister() {
     setSaving(true)
     const { gross, net } = calcPayroll(form)
     await upsert({
-      id: form.id || crypto.randomUUID(),
-      ...form,
-      gross_pay: gross.toFixed(2),
-      net_pay: net.toFixed(2)
+      id:              form.id || crypto.randomUUID(),
+      employee_id:     form.employee_id,
+      month:           form.month,
+      year:            parseInt(form.year),        // schema: integer
+      start_day:       parseInt(form.start_day),   // schema: integer
+      end_day:         parseInt(form.end_day),     // schema: integer
+      monthly_rate:    parseFloat(form.monthly_rate) || 0,
+      gross_pay:       parseFloat(gross.toFixed(2)),
+      nssa:            parseFloat(form.nssa)            || 0,
+      paye:            parseFloat(form.paye)            || 0,
+      other_payments:  parseFloat(form.other_payments)  || 0,
+      other_memo:      form.other_memo     || null,
+      net_pay:         parseFloat(net.toFixed(2)),
+      paid_amount:     parseFloat(form.paid_amount)     || null,
+      payment_date:    form.payment_date   || null,
+      payment_method:  form.payment_method || null,
+      paid_from:       form.paid_from      || null,
+      status:          form.status         || 'Unpaid',
     })
     setSaving(false)
     setModal(false)

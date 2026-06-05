@@ -36,8 +36,15 @@ export default function LeaveTracker() {
 
   async function handleSave() {
     setSaving(true)
-    const days = Math.max(0, differenceInDays(parseISO(form.end_date), parseISO(form.start_date)) + 1)
-    await upsert({ ...form, id: form.id || crypto.randomUUID(), days_taken: days })
+    // days_taken is GENERATED ALWAYS in Supabase — never send it explicitly
+    await upsert({
+      id:         form.id || crypto.randomUUID(),
+      employee_id: form.employee_id,
+      leave_type:  form.leave_type,
+      start_date:  form.start_date,
+      end_date:    form.end_date,
+      notes:       form.notes || null,
+    })
     setSaving(false)
     setModal(false)
   }
