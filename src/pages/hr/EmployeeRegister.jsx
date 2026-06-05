@@ -142,7 +142,15 @@ export default function EmployeeRegister() {
             <Input label="Start Date" type="date" value={form.startDate} onChange={set('startDate')} />
             <Input label="End Date" type="date" value={form.endDate} onChange={set('endDate')} />
           </div>
-          <NumberInput label="Monthly Rate (USD)" prefix="$" value={form.monthlyRate} onChange={set('monthlyRate')} placeholder="0.00" step="0.01" />
+          <NumberInput
+            label={form.employmentType === 'Hourly' ? 'Hourly Rate (USD/hr)' : 'Monthly Salary (USD)'}
+            prefix="$"
+            value={form.monthlyRate}
+            onChange={set('monthlyRate')}
+            placeholder="0.00"
+            step="0.01"
+            hint={form.employmentType === 'Hourly' ? 'Used for hourly payroll calculations' : 'Covers 25 working days + 5 leave days'}
+          />
           {saveError && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm text-red-700 font-medium">
               {saveError}

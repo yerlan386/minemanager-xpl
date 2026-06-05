@@ -30,8 +30,9 @@ export default function LeaveTracker() {
   function getAccrued(empId) {
     const emp = employees.find(e => e.id === empId)
     if (!emp || !emp.startDate) return 0
+    // 5 leave days per month entitlement (matches 25-day working month policy)
     const months = Math.floor(differenceInDays(new Date(), parseISO(emp.startDate)) / 30)
-    return Math.floor(months * (30 / 12))
+    return months * 5
   }
 
   async function handleSave() {
