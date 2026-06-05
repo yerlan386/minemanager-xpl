@@ -3,6 +3,9 @@ import { UserPlus, Shield, CheckCircle2, Eye, EyeOff, Trash2, RefreshCw } from '
 import { supabase, DEMO_MODE, dbSelect, dbUpsert } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { EMPLOYEES, SYSTEM_ROLES } from '../../data/employees'
+
+// Look up email from static employees list (user_profiles has no email column)
+const staticEmail = empId => EMPLOYEES.find(e => e.id === empId)?.email || ''
 import { Select, Input } from '../../components/ui/FormField'
 import { Badge } from '../../components/ui/Badge'
 import { Modal, ConfirmDialog } from '../../components/ui/Modal'
@@ -146,11 +149,12 @@ export default function UserManagement() {
     }
     // Send password reset email via Supabase
     const u = users.find(u => u.id === userId)
-    if (!u?.email) return
-    await supabase.auth.resetPasswordForEmail(u.email, {
+    const email = staticEmail(u?.employee_id)
+    if (!email) return
+    await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`
     })
-    setSuccess(`Password reset email sent to ${u.email}`)
+    setSuccess(`Password reset email sent to ${email}`)
     setResetModal(null)
     setTimeout(() => setSuccess(''), 4000)
   }
@@ -200,12 +204,12 @@ export default function UserManagement() {
                 </div>
                 <div>
                   <p className="font-bold text-navy text-sm">{u.name || emp?.name}</p>
-                  <p className="text-xs text-gray-500">{u.email}</p>
+                  <p className="text-xs text-gray-500">{staticEmail(u.employee_id)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge color={roleColor[u.role] || 'gray'}>{u.role}</Badge>
-                <button onClick={() => setResetModal({ id: u.id, name: u.name || emp?.name, email: u.email })}
+                <button onClick={() => setResetModal({ id: u.id, name: u.name || emp?.name, employeeId: u.employee_id })}
                   title="Reset password"
                   className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-navy transition-colors">
                   <RefreshCw size={15} />
@@ -303,7 +307,7 @@ export default function UserManagement() {
         onClose={() => setResetModal(null)}
         onConfirm={() => resetPassword(resetModal?.id)}
         title="Reset Password"
-        message={`Send a password reset email to ${resetModal?.name} (${resetModal?.email})?`}
+        message={`Send a password reset email to ${resetModal?.name} (${staticEmail(resetModal?.employeeId)})?`}
         confirmLabel="Send Reset Email"
       />
     </div>

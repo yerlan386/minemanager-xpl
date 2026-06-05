@@ -38,7 +38,7 @@ export default function PayrollRegister() {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
-  const filtered = payroll.filter(r => r.month === filterMonth && r.year === filterYear)
+  const filtered = payroll.filter(r => r.month === filterMonth && String(r.year) === filterYear)
 
   const totals = filtered.reduce((acc, r) => {
     const { gross, net } = calcPayroll(r)

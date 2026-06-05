@@ -22,7 +22,15 @@ export function useEmployees() {
         setEmployees(stored)
       } else {
         const { data } = await dbSelect('employees')
-        setEmployees(data?.length ? data : EMPLOYEES)
+        // Normalize snake_case from Supabase to match camelCase used throughout the app
+        const normalized = (data || []).map(e => ({
+          ...e,
+          monthlyRate:      e.monthlyRate      ?? e.monthly_rate      ?? 0,
+          employmentType:   e.employmentType   ?? e.employment_type   ?? 'Monthly',
+          startDate:        e.startDate        ?? e.start_date        ?? null,
+          reportsTo:        e.reportsTo        ?? e.reports_to        ?? null,
+        }))
+        setEmployees(normalized.length ? normalized : EMPLOYEES)
       }
       setLoading(false)
     }
