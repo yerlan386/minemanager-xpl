@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, Routes, Route } from 'react-router-dom'
+import { Link, Routes, Route, Navigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { Plus, Download, ChevronRight } from 'lucide-react'
 import { dbSelect } from '../../lib/supabase'
@@ -86,6 +86,7 @@ export default function ShiftPage() {
     <Routes>
       <Route index element={<ShiftIndex />} />
       <Route path="handover/:id" element={<ShiftHandover />} />
+      <Route path="production" element={<Navigate to="/shift" replace />} />
     </Routes>
   )
 }

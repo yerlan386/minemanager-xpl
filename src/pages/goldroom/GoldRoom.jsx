@@ -162,7 +162,7 @@ export default function GoldRoom() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">Gold Room</h1>
-          <p className="text-gold text-xs font-semibold">RESTRICTED — {user?.role}</p>
+          <p className="text-gold text-xs font-semibold">Owner · Mine Manager · Metallurgist only</p>
         </div>
       </div>
 
