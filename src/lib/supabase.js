@@ -14,10 +14,15 @@ export const supabase = DEMO_MODE
       realtime: { params: { eventsPerSecond: 10 } }
     })
 
-// Admin client — bypasses RLS, used only for Owner-level operations
+// Admin client — bypasses RLS, used only for Owner-level operations.
+// storageKey must differ from the main client to avoid "Multiple GoTrueClient" warning.
 export const supabaseAdmin = (!DEMO_MODE && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        storageKey: 'mm_admin_session',
+      }
     })
   : null
 
