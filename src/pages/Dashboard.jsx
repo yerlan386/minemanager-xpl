@@ -136,11 +136,11 @@ export default function Dashboard() {
                 SI 91 of 2026 — Daily Confirmation
               </p>
               <p className="text-xs text-gray-600 mt-0.5">
-                Statutory Instrument 91: Mining (Health, Safety & Environment) Regulations
+                {format(new Date(), 'd MMMM yyyy')} · Statutory Instrument 91: Mining (Health, Safety &amp; Environment) Regulations
               </p>
               {si91Confirmed && (
                 <p className="text-xs text-green-700 font-medium mt-1">
-                  ✓ Confirmed by {user?.name} · {format(new Date(), 'HH:mm')}
+                  ✓ Confirmed by {user?.name} · {format(new Date(), 'd MMM yyyy, HH:mm')}
                 </p>
               )}
             </div>
@@ -173,6 +173,9 @@ export default function Dashboard() {
           <KPICard label="Gold Recovered" value={kpis.goldG} unit="g" color="gold" />
           <KPICard label="Plant Run-Time" value={kpis.runtime} unit="hrs" color="green" />
         </div>
+        {kpis.tonnes === null && kpis.goldG === null && kpis.runtime === null && (
+          <p className="text-xs text-gray-400 text-center mt-2">No production data logged yet today — submit a shift handover or production log to update.</p>
+        )}
       </div>
 
       {/* Quick Actions */}

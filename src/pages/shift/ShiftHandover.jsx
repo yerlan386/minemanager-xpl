@@ -12,7 +12,7 @@ import { StatusBadge } from '../../components/ui/Badge'
 import { generateHandoverPDF } from '../../lib/pdfExport'
 
 const SUPERVISORS = EMPLOYEES.filter(e =>
-  ['Owner', 'Mine Manager', 'Shift Supervisor'].includes(e.role)
+  ['Mine Manager', 'Shift Supervisor'].includes(e.role)
 ).map(e => ({ value: e.id, label: e.name }))
 
 const STATUS_OPTIONS = [

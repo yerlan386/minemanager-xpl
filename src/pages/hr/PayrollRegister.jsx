@@ -259,6 +259,28 @@ export default function PayrollRegister() {
         </div>
       )}
 
+      {/* Empty month hint */}
+      {filtered.length === 0 && activeEmps.length > 0 && (() => {
+        const prevMonthIdx = (MONTHS.indexOf(filterMonth) - 1 + 12) % 12
+        const prevMonth = MONTHS[prevMonthIdx]
+        const prevYear = MONTHS.indexOf(filterMonth) === 0 ? String(parseInt(filterYear) - 1) : filterYear
+        const hasPrev = payroll.some(r => r.month === prevMonth && String(r.year) === prevYear)
+        return (
+          <div className="card bg-gray-50 border border-gray-200 text-center py-4 space-y-2">
+            <p className="text-sm text-gray-500">No payroll records for <strong>{filterMonth} {filterYear}</strong></p>
+            {hasPrev && (
+              <button
+                onClick={() => { setFilterMonth(prevMonth); setFilterYear(prevYear) }}
+                className="text-xs font-semibold text-navy underline"
+              >
+                View {prevMonth} {prevYear} instead
+              </button>
+            )}
+            <p className="text-xs text-gray-400">Tap an employee below to add their record.</p>
+          </div>
+        )
+      })()}
+
       {/* Employee list */}
       <div className="space-y-2">
         {activeEmps.map(emp => {
